@@ -1,9 +1,12 @@
 import hashlib
 import requests
 import json
-from time import time
+from datetime import datetime, timezone
 from urllib.parse import urlparse
+from config import Config
 
+from matchOrders import matchOrders
+from transactTrades import transactTrades
 
 class Blockchain(object):
     def __init__(self):
@@ -15,6 +18,7 @@ class Blockchain(object):
         # Genesis block creation
         self.newBlock(previousHash=1, proof=100)
 
+
     def newBlock(self, proof, previousHash=None):
         """
         New block creation
@@ -24,11 +28,13 @@ class Blockchain(object):
         :return: <dict> Новый блок
         """
 
-        # match trade txs
+        # Match trade txs and route trades
+        self.transactTradeOrders()
 
+        # Make new block
         block ={
             'index': len(self.chain)+1,
-            'timestamp': time(),
+            'timestamp': datetime.now(timezone.utc).timestamp(),
             'transactions': self.current_transactions,
             'proof': proof,
             'previousHash': previousHash or self.hash(self.chain[-1])
@@ -40,9 +46,10 @@ class Blockchain(object):
 
         return block
 
-    def newTransaction(self,sender,recipient,amount,type="common",\
-    contractSend=None, contractGet=None, amountToSend=0.0,\
-    amountToGet=0.0, tradeTxHash=None):
+    def newTransaction(self,sender,sendAmount=0.0, price=0.0, recipient=None,\
+    symbol='zsh', type="common", contract=None,\
+    send=None, get=None, sendVol=0.0,\
+    getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
 
         """
         Направляет новую транзакцию в следующий блок
@@ -52,57 +59,80 @@ class Blockchain(object):
         :param amount: <int> Сумма
         :return: <int> Индекс блока, который будет хранить эту транзакцию
         """
-        if type is "common":
+
+        if comissionAmount < Config().MIN_COMISSION:
+            comissionAmount = Config().MIN_COMISSION
+
+        if type == 'common':
             self.current_transactions.append({
+                'timestamp': datetime.now(timezone.utc).timestamp(),
+                'symbol': symbol,
+                'contract': contract,
                 'sender': sender,
                 'recipient': recipient,
-                'amount': amount,
-                'contractSend': contractSend,
-                'contractGet': contractGet,
-                'amountToSend': amountToSend,
-                'amountToGet': amountToGet,
-                'tradeTxHash':tradeTxHash
+                'sendAmount': sendAmount,
+                'recieveAmount': get,
+                'price': price,
+                'comissionAmount': float(comissionAmount),
+                'tradeTxId':tradeTxHash
             })
 
-        elif type is "trade":
+        elif type == 'trade':
 
             tradeTx = {
+                'timestamp': datetime.now(timezone.utc).timestamp(),
                 'sender': sender,
-                'recipient': recipient,
-                'amount': amount,
-                'contractSend': contractSend,
-                'contractGet': contractGet,
-                'amountToSend': amountToSend,
-                'amountToGet': amountToGet,
+                'symbol': symbol,
+                'price': price,
+                'send': send,
+                'sendVol': sendVol,
+                'get': get,
+                'getVol': getVol,
+                'comissionAmount':float(comissionAmount)
             }
 
-            tradeTxJson = json.dumps(block, sort_keys=True).encode()
+            tradeTxJson = json.dumps(tradeTx, sort_keys=True).encode()
             tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
-            tradeTx['tradeTxHash'] = tradeTxHash
+            tradeTx['tradeTxId'] = tradeTxHash
 
             self.trade_transactions.append(tradeTx)
+
+        else:
+            print('smth went terribly wrong')
 
         return self.lastBlock['index']+1
 
 
-
-
-    def matchTradeTxs(self):
+    def transactTradeOrders(self):
         """
-         1. Get trade txs
-         2. Find txs where contractSend == contractGet
-         3. Find txs among txs above where prices are equal
-         4. Form common transactions and append it to common txs pool
-         5. Reduce volumes of amount to send of trade txs
-         6. If amount to send of trade tx equals to zero -- append this tx to common txs pool and append it to block
+        1. Get trade txs
+        2. Find txs where contractSend == contractGet
+        3. Find txs among txs above where prices are equal
+        4. Form common transactions and append it to common txs pool
+        5. Reduce volumes of amount to send of trade txs
+        6. If amount to send of trade tx equals to zero -- append this tx to common txs pool and append it to block
         """
-        tradeTxs = self.trade_transactions
-        for i in len(tradeTxs)-1:
-            if tradeTxs[i]['contractSend'] == 
+        mathchedOrders = matchOrders(self.trade_transactions)
 
+        txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
+        print(txDir, '\n\n')
+        print(commonTxs)
 
+        # Include tarde txs to common transaction pool
+        for tx in commonTxs:
+            self.current_transactions.append(tx)
 
+        # Remove zero getVol transactions from tradeTxs pool
+        txDirKeys = list(txDir.keys())
+        toRemove = []
 
+        for key in txDirKeys:
+            toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0]
+            if len(toRemoveTemp) > 0:
+                toRemove.append(toRemoveTemp[0])
+
+        for removeOrder in toRemove:
+            self.trade_transactions.remove(removeOrder)
 
 
 

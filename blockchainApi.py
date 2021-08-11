@@ -6,6 +6,7 @@ from uuid import uuid4
 from sys import argv
 from flask import Flask, jsonify, request
 
+from config import Config
 from blockchain import Blockchain
 
 app = Flask(__name__)
@@ -21,7 +22,7 @@ def mine():
     blockchain.newTransaction(
         sender="0",
         recipient=nodeIdentifier,
-        amount=1
+        sendAmount=1
     )
 
     previousHash = blockchain.hash(lastBlock)
@@ -40,37 +41,70 @@ def mine():
 @app.route('/transactions/new', methods=['POST'])
 def newTx():
 
-    type="common"
-    contractSend=None
-    contractGet=None
-    amountToSend=0.0
-    amountToGet=0.0
-    tradeTxHash=None
-
     values = request.get_json()
-    required = ['sender', 'recipient', 'amount']
-
+    required = Config().REQUIRED_TX_FIELDS
     if not all(k in values for k in required):
         return 'Missing values', 400
 
+    # Define orders type
+    type = values['type']
+    print(type)
+    
+    if type not in Config().REQUIRED_TX_TYPE:
+        return 'Transaction type error! Provide "common" or "trade" transaction', 400
+
+    if type == 'common':
+        symbol = values['symbol']
+        contract = values['contract']
+        sender = values['sender']
+        recipient = values['recipient']
+        sendAmount = values['sendAmount']
+        comissionAmount = values['comissionAmount']
+
+        index = blockchain.newTransaction(type=type,symbol=symbol, contract=contract,\
+                                        sender=sender, recipient=recipient,\
+                                        sendAmount=sendAmount,\
+                                        comissionAmount=comissionAmount)
+
+    elif type == 'trade':
+        sender = values['sender']
+        symbol = values['symbol']
+        price = values['price']
+        send = values['send']
+        sendVol = values['sendVol']
+        get = values['get']
+        getVol = values['getVol']
+        comissionAmount = values['comissionAmount']
+
+        index = blockchain.newTransaction(type=type, sender=sender, symbol=symbol,\
+                        price=price, send=send, sendVol=sendVol, get=get,\
+                        getVol=getVol, comissionAmount=comissionAmount)
 
     # txRequired = ['type','contractSend','contractGet','amountToSend','amountToGet','tradeTxHash']
-    if 'contractSend' in values:
-        type = values['type']
-        contractSend = values['contractSend']
-        contractGet = values['contractGet']
-        amountToSend = values['amountToSend']
-        amountToGet = values['amountToGet']
-        tradeTxHash = values['tradeTxHash']
-
-    index = blockchain.newTransaction(values['sender'], values['recipient'],\
-                                     values['amount'], type, contractSend, contractGet,\
-                                     amountToSend, amountToGet, tradeTxHash)
 
 
     response = {'msg': f'Transaction will be added to Block {index}'}
 
     return jsonify(response), 201
+
+
+@app.route('/getTxPool', methods=['GET'])
+def txPool():
+    response = {
+        'txPool': blockchain.current_transactions
+    }
+
+    return jsonify(response), 200
+
+
+@app.route('/getTradeOrders', methods=['GET'])
+def tradeOrders():
+    response = {
+        'tradeOrders': blockchain.trade_transactions
+    }
+
+    return jsonify(response), 200
+
 
 @app.route('/chain', methods=['GET'])
 def fullChain():
