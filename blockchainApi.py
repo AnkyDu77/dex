@@ -49,7 +49,7 @@ def newTx():
     # Define orders type
     type = values['type']
     print(type)
-    
+
     if type not in Config().REQUIRED_TX_TYPE:
         return 'Transaction type error! Provide "common" or "trade" transaction', 400
 

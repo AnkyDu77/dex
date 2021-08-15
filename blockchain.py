@@ -1,3 +1,4 @@
+import sys
 import hashlib
 import requests
 import json
@@ -15,8 +16,15 @@ class Blockchain(object):
         self.trade_transactions=[]
         self.nodes = set()
 
-        # Genesis block creation
-        self.newBlock(previousHash=1, proof=100)
+        # Get latest block or initiate genesis
+        chainFiles = os.listdir('./chain')
+        chainFiles = [file for file in chainFiles if re.split(r'\.', file)[1] == 'json']
+        if len(chainFiles) > 0:
+            with open(f'./chain/{chainFiles[-1]}', 'r') as file:
+                self.chain = [json.load(file)[-1]]
+        else:
+            # Genesis block creation
+            self.newBlock(previousHash=1, proof=100)
 
 
     def newBlock(self, proof, previousHash=None):
@@ -32,7 +40,7 @@ class Blockchain(object):
         self.transactTradeOrders()
 
         # Make new block
-        block ={
+        block = {
             'index': len(self.chain)+1,
             'timestamp': datetime.now(timezone.utc).timestamp(),
             'transactions': self.current_transactions,
@@ -43,6 +51,13 @@ class Blockchain(object):
         # Current txs list reload
         self.current_transactions = []
         self.chain.append(block)
+
+        # Get chain size and write it to file if necessary
+        if sys.getsizeof(self.chain) >= 2831155:
+            with open(f'./chain/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
+                json.dump(self.chain, file)
+
+            self.chain = [self.chain[-1]]
 
         return block
 
@@ -115,8 +130,6 @@ class Blockchain(object):
         mathchedOrders = matchOrders(self.trade_transactions)
 
         txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
-        print(txDir, '\n\n')
-        print(commonTxs)
 
         # Include tarde txs to common transaction pool
         for tx in commonTxs:
@@ -167,6 +180,7 @@ class Blockchain(object):
 
         return proof
 
+
     @staticmethod
     def validProof(lastProof, proof):
         """
@@ -181,6 +195,7 @@ class Blockchain(object):
         guessHash = hashlib.sha256(guess).hexdigest()
 
         return guessHash[:4]=="0000"
+
 
     def registerNode(self, address):
         """
