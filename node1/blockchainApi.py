@@ -1,12 +1,10 @@
-import os
-import re
 import json
 
 from textwrap import dedent
 from time import time
 from uuid import uuid4
 from sys import argv
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request
 
 from config import Config
 from blockchain import Blockchain
@@ -14,12 +12,6 @@ from blockchain import Blockchain
 app = Flask(__name__)
 nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
-
-@app.route('/', methods=['GET'])
-@app.route('/index', methods=['GET'])
-def index():
-    return jsonify({'MSG': 'Working'}), 200
-
 
 @app.route('/mine', methods=['GET'])
 def mine():
@@ -166,30 +158,7 @@ def gNodes():
     nodesList = [node for node in nodes]
     return json.dumps({"nodes": nodesList})
 
-
-@app.route('/nodes/getChainFilesAmount', methods=['GET'])
-def getChFAm():
-    chainFiles = os.listdir(os.path.join(Config().BASEDIR, 'chain'))
-    chainFiles = [file for file in chainFiles if re.split(r'\.', file)[1] == 'json']
-    return jsonify({'MSG': len(chainFiles)}), 200
-
-
-@app.route('/nodes/sendChainData', methods=['POST'])
-def sendChData():
-    # Get files names list
-    chainFiles = os.listdir(os.path.join(Config().BASEDIR, 'chain'))
-    chainFiles = [file for file in chainFiles if re.split(r'\.', file)[1] == 'json']
-
-    # Get files index
-    fileNum = request.json['iter']
-
-    # Send file
-    return send_from_directory(
-        Config().UPLOAD_FOLDER, chainFiles[fileNum], as_attachment=True
-    )
-
-
 if __name__ == '__main__':
     # _, host, port = argv
-    app.run(host= '0.0.0.0', port=5000)#,
+    app.run(host= '0.0.0.0', port=5001)#,
     print(blockchain.nodes)

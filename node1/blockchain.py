@@ -20,17 +20,17 @@ class Blockchain(object):
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
 
-        # # Get chain data from default nodes
-        # for node in self.nodes:
-        #     if requests.get(node).status_code == 200:
-        #         # Get num of files
-        #         filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
-        #         # Download files
-        #         for i in range(filesNum):
-        #             chainFile = requests.post(node+'/nodes/sendChainData', json={'iter':i})
-        #             fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
-        #             with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
-        #                 file.write(chainFile.content)
+        # Get chain data from default nodes
+        for node in self.nodes:
+            if requests.get(node).status_code == 200:
+                # Get num of files
+                filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+                # Download files
+                for i in range(filesNum):
+                    chainFile = requests.post(node+'/nodes/sendChainData', json={'iter':i})
+                    fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+                    with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+                        file.write(chainFile.content)
 
         # Get latest block or initiate genesis
         chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
