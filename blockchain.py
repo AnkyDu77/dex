@@ -10,6 +10,8 @@ from config import Config
 
 from matchOrders import matchOrders
 from transactTrades import transactTrades
+from signTransaction import signTransaction
+
 
 class Blockchain(object):
     def __init__(self):
@@ -19,6 +21,7 @@ class Blockchain(object):
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
+        self.prkey = None
 
         # # Get chain data from default nodes
         # for node in self.nodes:

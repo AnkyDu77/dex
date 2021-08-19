@@ -11,12 +11,15 @@ from flask import Flask, jsonify, request, send_from_directory
 from config import Config
 from blockchain import Blockchain
 
+from createWallet import createWallet
+from authoriseUser import authoriseUser
+
 app = Flask(__name__)
 nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
 
 @app.route('/', methods=['GET'])
-@app.route('/index', methods=['GET'])
+@app.route('/index.html', methods=['GET'])
 def index():
     return jsonify({'MSG': 'Working'}), 200
 
@@ -52,14 +55,14 @@ def newTx():
     values = request.get_json()
     required = Config().REQUIRED_TX_FIELDS
     if not all(k in values for k in required):
-        return 'Missing values', 400
+        return jsonify({'MSG':'Missing values'}), 400
 
     # Define orders type
     type = values['type']
     print(type)
 
     if type not in Config().REQUIRED_TX_TYPE:
-        return 'Transaction type error! Provide "common" or "trade" transaction', 400
+        return jsonify({'MSG': 'Transaction type error! Provide "common" or "trade" transaction'}), 400
 
     if type == 'common':
         symbol = values['symbol']
@@ -189,7 +192,34 @@ def sendChData():
     )
 
 
+@app.route('/wallet/new', methods=['POST'])
+def newWallet():
+    if request.method == 'POST':
+        psw = request.json['password']
+        address = createWallet(password)
+
+        return jsonify({"ADDRESS": address}), 200
+
+
+@app.route('/wallet/login', methods=['POST'])
+def loginUser():
+    if request.method == 'POST':
+        psw = request.json['password']
+        prKey = authoriseUser(password)
+        if prKey == 'Wrong password':
+            return jsonify({'MSG': prKey}), 400
+
+        blockchain.prkey = prKey
+        return jsonify({'MSG': True}), 200
+
+
+@app.route('wallet/logout', methods=['GET'])
+def logoutUser():
+    blockchain.prkey = None
+    return jsonify({'MSG': True}), 200
+
+
 if __name__ == '__main__':
     # _, host, port = argv
-    app.run(host= '0.0.0.0', port=5000)#,
+    app.run(host= '0.0.0.0', port=5000)
     print(blockchain.nodes)
