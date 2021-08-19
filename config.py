@@ -3,7 +3,9 @@ import os
 class Config():
 
     BASEDIR = basedir = os.path.abspath(os.path.dirname(__file__))
-
+    
+    IDSTR = 'z01x00'
+    
     MIN_COMISSION = 1
     REQUIRED_TX_FIELDS = ['sender', 'type']
     REQUIRED_TX_TYPE = ['common', 'trade']
