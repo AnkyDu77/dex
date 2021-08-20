@@ -4,6 +4,7 @@ import json
 
 from textwrap import dedent
 from time import time
+from datetime import datetime, timezone
 from uuid import uuid4
 from sys import argv
 from flask import Flask, jsonify, request, send_from_directory
@@ -13,6 +14,8 @@ from blockchain import Blockchain
 
 from createWallet import createWallet
 from authoriseUser import authoriseUser
+from signTransaction import signTransaction
+from getCoinbase import getCoinbase
 
 app = Flask(__name__)
 nodeIdentifier = str(uuid4()).replace('-','')
@@ -31,7 +34,8 @@ def mine():
     proof = blockchain.pow(lastProof)
 
     blockchain.newTransaction(
-        sender="0",
+        sender=Config().MINEADDR,
+        timestamp = datetime.now(timezone.utc).timestamp(),
         recipient=nodeIdentifier,
         sendAmount=1
     )
@@ -59,25 +63,52 @@ def newTx():
 
     # Define orders type
     type = values['type']
-    print(type)
 
     if type not in Config().REQUIRED_TX_TYPE:
         return jsonify({'MSG': 'Transaction type error! Provide "common" or "trade" transaction'}), 400
 
     if type == 'common':
+
+        timestamp = datetime.now(timezone.utc).timestamp()
         symbol = values['symbol']
         contract = values['contract']
         sender = values['sender']
         recipient = values['recipient']
         sendAmount = values['sendAmount']
         comissionAmount = values['comissionAmount']
+        get=None
+        price=0.0
+        tradeTxHash=None
 
-        index = blockchain.newTransaction(type=type,symbol=symbol, contract=contract,\
+
+        # Sign transaction
+        transactionDict = {
+            'timestamp': timestamp,
+            'symbol': symbol,
+            'contract': contract,
+            'sender': sender,
+            'recipient': recipient,
+            'sendAmount': sendAmount,
+            'recieveAmount': get,
+            'price': price,
+            'comissionAmount': float(comissionAmount),
+            'tradeTxId':tradeTxHash
+        }
+
+        try:
+            # Sign message
+            signiture = signTransaction(str(transactionDict), blockchain.prkey)
+        except:
+            return jsonify({'MSG': 'Simple tx not accepted. Try to sign in first'}), 400
+
+        index = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
                                         sender=sender, recipient=recipient,\
                                         sendAmount=sendAmount,\
                                         comissionAmount=comissionAmount)
 
     elif type == 'trade':
+
+        timestamp = datetime.now(timezone.utc).timestamp()
         sender = values['sender']
         symbol = values['symbol']
         price = values['price']
@@ -87,16 +118,31 @@ def newTx():
         getVol = values['getVol']
         comissionAmount = values['comissionAmount']
 
-        index = blockchain.newTransaction(type=type, sender=sender, symbol=symbol,\
+
+        transactionDict = {
+            'timestamp': timestamp,
+            'sender': sender,
+            'symbol': symbol,
+            'price': price,
+            'send': send,
+            'sendVol': sendVol,
+            'get': get,
+            'getVol': getVol,
+            'comissionAmount':float(comissionAmount)
+        }
+
+        try:
+            # Sign message
+            signiture = signTransaction(str(transactionDict), blockchain.prkey)
+        except:
+            return jsonify({'MSG': 'Trade tx not accepted. Try to sign in first'}), 400
+
+        index = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
                         price=price, send=send, sendVol=sendVol, get=get,\
                         getVol=getVol, comissionAmount=comissionAmount)
 
-    # txRequired = ['type','contractSend','contractGet','amountToSend','amountToGet','tradeTxHash']
 
-
-    response = {'msg': f'Transaction will be added to Block {index}'}
-
-    return jsonify(response), 201
+    return jsonify({'MSG': index}), 201
 
 
 @app.route('/getTxPool', methods=['GET'])
@@ -196,30 +242,32 @@ def sendChData():
 def newWallet():
     if request.method == 'POST':
         psw = request.json['password']
-        address = createWallet(password)
+        blockchain.coinbase = createWallet(psw)
 
-        return jsonify({"ADDRESS": address}), 200
+        return jsonify({"ADDRESS": blockchain.coinbase}), 200
 
 
 @app.route('/wallet/login', methods=['POST'])
 def loginUser():
     if request.method == 'POST':
         psw = request.json['password']
-        prKey = authoriseUser(password)
-        if prKey == 'Wrong password':
-            return jsonify({'MSG': prKey}), 400
+        pubKey, prKey = authoriseUser(psw)
+        if prKey == False:
+            return jsonify({'MSG': 'Wrong password or there is no wallet'}), 400
 
         blockchain.prkey = prKey
-        return jsonify({'MSG': True}), 200
+        blockchain.pubKey = pubKey
+        blockchain.coinbase = getCoinbase()
+        return jsonify({'MSG': True, 'ADDRESS': blockchain.coinbase}), 200
 
 
-@app.route('wallet/logout', methods=['GET'])
+@app.route('/wallet/logout', methods=['GET'])
 def logoutUser():
     blockchain.prkey = None
+    blockchain.pubKey = None
     return jsonify({'MSG': True}), 200
 
 
 if __name__ == '__main__':
     # _, host, port = argv
     app.run(host= '0.0.0.0', port=5000)
-    print(blockchain.nodes)
