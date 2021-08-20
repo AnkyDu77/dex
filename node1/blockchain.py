@@ -10,6 +10,8 @@ from config import Config
 
 from matchOrders import matchOrders
 from transactTrades import transactTrades
+from verifyTxSignature import verifyTxSignature
+
 
 class Blockchain(object):
     def __init__(self):
@@ -19,18 +21,21 @@ class Blockchain(object):
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
+        self.coinbase = None
+        self.prkey = None
+        self.pubKey = None
 
-        # Get chain data from default nodes
-        for node in self.nodes:
-            if requests.get(node).status_code == 200:
-                # Get num of files
-                filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
-                # Download files
-                for i in range(filesNum):
-                    chainFile = requests.post(node+'/nodes/sendChainData', json={'iter':i})
-                    fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
-                    with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
-                        file.write(chainFile.content)
+        # # Get chain data from default nodes
+        # for node in self.nodes:
+        #     if requests.get(node).status_code == 200:
+        #         # Get num of files
+        #         filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+        #         # Download files
+        #         for i in range(filesNum):
+        #             chainFile = requests.post(node+'/nodes/sendChainData', json={'iter':i})
+        #             fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+        #             with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+        #                 file.write(chainFile.content)
 
         # Get latest block or initiate genesis
         chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
@@ -77,7 +82,7 @@ class Blockchain(object):
 
         return block
 
-    def newTransaction(self,sender,sendAmount=0.0, price=0.0, recipient=None,\
+    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0, price=0.0, recipient=None,\
     symbol='zsh', type="common", contract=None,\
     send=None, get=None, sendVol=0.0,\
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
@@ -95,8 +100,9 @@ class Blockchain(object):
             comissionAmount = self.cnfg.MIN_COMISSION
 
         if type == 'common':
-            self.current_transactions.append({
-                'timestamp': datetime.now(timezone.utc).timestamp(),
+
+            simpleTx = {
+                'timestamp': timestamp,
                 'symbol': symbol,
                 'contract': contract,
                 'sender': sender,
@@ -106,12 +112,25 @@ class Blockchain(object):
                 'price': price,
                 'comissionAmount': float(comissionAmount),
                 'tradeTxId':tradeTxHash
-            })
+            }
+
+            if sender == Config().MINEADDR:
+                self.current_transactions.append(simpleTx)
+                return self.lastBlock['index']+1
+
+            # Check sigitures
+            verifStatus = verifyTxSignature(sender, self.pubKey, str(simpleTx), txsig)
+            if verifStatus == True:
+                self.current_transactions.append(simpleTx)
+                return self.lastBlock['index']+1
+
+            else:
+                return verifStatus
 
         elif type == 'trade':
 
             tradeTx = {
-                'timestamp': datetime.now(timezone.utc).timestamp(),
+                'timestamp': timestamp,
                 'sender': sender,
                 'symbol': symbol,
                 'price': price,
@@ -122,16 +141,25 @@ class Blockchain(object):
                 'comissionAmount':float(comissionAmount)
             }
 
-            tradeTxJson = json.dumps(tradeTx, sort_keys=True).encode()
-            tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
-            tradeTx['tradeTxId'] = tradeTxHash
+            # Check sigitures
+            verifStatus = verifyTxSignature(sender, self.pubKey, str(tradeTx), txsig)
+            if verifStatus == True:
 
-            self.trade_transactions.append(tradeTx)
+                tradeTxJson = json.dumps(tradeTx, sort_keys=True).encode()
+                tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
+                tradeTx['tradeTxId'] = tradeTxHash
+                self.trade_transactions.append(tradeTx)
+
+                return self.lastBlock['index']+1
+
+            else:
+                return verifStatus
 
         else:
             print('smth went terribly wrong')
 
-        return self.lastBlock['index']+1
+
+        #return self.lastBlock['index']+1
 
 
     def transactTradeOrders(self):
