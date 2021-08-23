@@ -6,11 +6,14 @@ import requests
 import json
 from datetime import datetime, timezone
 from urllib.parse import urlparse
+from flask import request
 from config import Config
 
 from matchOrders import matchOrders
 from transactTrades import transactTrades
 from verifyTxSignature import verifyTxSignature
+from syncPools import syncPools
+from syncChains import syncChains
 
 
 class Blockchain(object):
@@ -73,8 +76,11 @@ class Blockchain(object):
         self.current_transactions = []
         self.chain.append(block)
 
+        # Sync chain among the nodes
+        syncChains(self.chain, self.nodes)
+
         # Get chain size and write it to file if necessary
-        if sys.getsizeof(self.chain) >= 2831155:
+        if sys.getsizeof(self.chain) >= Config().MAX_CHAIN_SIZE:
             with open(f'./chain/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
                 json.dump(self.chain, file)
 
@@ -116,16 +122,20 @@ class Blockchain(object):
 
             if sender == Config().MINEADDR:
                 self.current_transactions.append(simpleTx)
-                return self.lastBlock['index']+1
+                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+
+                return self.lastBlock['index']+1, syncStatus
 
             # Check sigitures
             verifStatus = verifyTxSignature(sender, self.pubKey, str(simpleTx), txsig)
             if verifStatus == True:
                 self.current_transactions.append(simpleTx)
-                return self.lastBlock['index']+1
+                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+
+                return self.lastBlock['index']+1, syncStatus
 
             else:
-                return verifStatus
+                return verifStatus, verifStatus
 
         elif type == 'trade':
 
@@ -149,11 +159,12 @@ class Blockchain(object):
                 tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
                 tradeTx['tradeTxId'] = tradeTxHash
                 self.trade_transactions.append(tradeTx)
+                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
-                return self.lastBlock['index']+1
+                return self.lastBlock['index']+1, syncStatus
 
             else:
-                return verifStatus
+                return verifStatus, verifStatus
 
         else:
             print('smth went terribly wrong')
@@ -186,7 +197,8 @@ class Blockchain(object):
         for key in txDirKeys:
             toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0]
             if len(toRemoveTemp) > 0:
-                toRemove.append(toRemoveTemp[0])
+                for j in range(len(toRemoveTemp)):
+                    toRemove.append(toRemoveTemp[j])
 
         for removeOrder in toRemove:
             self.trade_transactions.remove(removeOrder)
@@ -250,7 +262,9 @@ class Blockchain(object):
         """
 
         parsedUrl = urlparse(address)
-        self.nodes.add(parsedUrl.netloc)
+        if parsedUrl.netloc not in self.nodes:
+            self.nodes.add(parsedUrl.netloc)
+            requests.post("http://"+parsedUrl.netloc+ "/nodes/register", json={'nodes':['http://'+request.host]})
 
 
     def validChain(self, chain):

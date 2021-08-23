@@ -11,9 +11,10 @@ class Config():
     MINEADDR = 'z01x0000000000000000000000000000000000000000000000000000000000'
 
     MIN_COMISSION = 1
+    MAX_CHAIN_SIZE = 2831155
     REQUIRED_TX_FIELDS = ['sender', 'type']
     REQUIRED_TX_TYPE = ['common', 'trade']
-
-    DEFAULT_VALID_NODES = ['http://0.0.0.0:5001']
+    
+    DEFAULT_VALID_NODES = ['0.0.0.0:5002']
 
     UPLOAD_FOLDER = os.path.join(BASEDIR, 'chain')

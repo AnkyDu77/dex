@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import json
 
 from textwrap import dedent
@@ -7,6 +8,7 @@ from time import time
 from datetime import datetime, timezone
 from uuid import uuid4
 from sys import argv
+from urllib.parse import urlparse
 from flask import Flask, jsonify, request, send_from_directory
 
 from config import Config
@@ -16,6 +18,8 @@ from createWallet import createWallet
 from authoriseUser import authoriseUser
 from signTransaction import signTransaction
 from getCoinbase import getCoinbase
+from syncPools import syncPools
+
 
 app = Flask(__name__)
 nodeIdentifier = str(uuid4()).replace('-','')
@@ -43,12 +47,15 @@ def mine():
     previousHash = blockchain.hash(lastBlock)
     block = blockchain.newBlock(proof, previousHash)
 
+    syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
+
     response = {
         'message': "New Block Forged",
         'index': block['index'],
         'transactions': block['transactions'],
         'proof': block['proof'],
-        'previous_hash': block['previousHash']
+        'previous_hash': block['previousHash'],
+        'pool_syncing': syncStatus
     }
 
     return jsonify(response), 200
@@ -137,12 +144,29 @@ def newTx():
         except:
             return jsonify({'MSG': 'Trade tx not accepted. Try to sign in first'}), 400
 
-        index = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
+        index, syncStatus = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
                         price=price, send=send, sendVol=sendVol, get=get,\
                         getVol=getVol, comissionAmount=comissionAmount)
 
 
-    return jsonify({'MSG': index}), 201
+    return jsonify({'MSG': index, 'SYNC': syncStatus}), 201
+
+
+@app.route('/transactions/sync', methods=['POST'])
+def syncTxs():
+    node = request.json['node']
+    commonTxs = request.json['commonTxs']
+    tradeTxs = request.json['tradeTxs']
+    parsedUrl = urlparse(node)
+    if parsedUrl.netloc in blockchain.nodes:
+        blockchain.current_transactions = commonTxs
+        blockchain.trade_transactions = tradeTxs
+        print('Tx pool synced')
+        return jsonify({'MSG': 'Tx pool synced'}), 200
+
+    else:
+        print('Node is not registered')
+        return jsonify({'MSG': 'Node is not registered'}), 400
 
 
 @app.route('/getTxPool', methods=['GET'])
@@ -171,6 +195,26 @@ def fullChain():
     }
 
     return jsonify(response), 200
+
+
+@app.route('/chain/sync', methods=['POST'])
+def syncCh():
+    node = request.json['node']
+    chain = request.json['chain']
+    parsedUrl = urlparse(node)
+    if parsedUrl.netloc in blockchain.nodes:
+        blockchain.chain = chain
+        if sys.getsizeof(blockchain.chain) >= Config().MAX_CHAIN_SIZE:
+            with open(f'./chain/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
+                json.dump(blockchain.chain, file)
+            blockchain.chain = [blockchain.chain[-1]]
+        print('Chain synced')
+        return jsonify({'MSG': 'Chain synced'}), 200
+
+    else:
+        print('Node is not registered')
+        return jsonify({'MSG': 'Node is not registered'}), 400
+
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
