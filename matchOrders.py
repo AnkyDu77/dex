@@ -3,9 +3,11 @@ from operator import itemgetter
 
 def matchOrders(ordersPool):
 
-    sybmolSortedLst = sorted([(ordersPool[i]['sender'],ordersPool[i]['symbol'],ordersPool[i]['send'],ordersPool[i]['get'],\
-                           ordersPool[i]['price'],)\
-                          for i in range(len(ordersPool))], key=itemgetter(1, 2))
+
+    sybmolSortedLst = sorted([(ordersPool[i]['sender'],ordersPool[i]['symbol'],\
+                            ordersPool[i]['send'],ordersPool[i]['get'],\
+                           ordersPool[i]['price'],ordersPool[i]['tradeTxId'],)\
+                          for i in range(len(ordersPool))], key=itemgetter(4, 2, 1))
 
     mathchedOrders = []
     for i in range(len(sybmolSortedLst)-1):
@@ -16,9 +18,9 @@ def matchOrders(ordersPool):
             splittedSymbol2 = re.split(r'/', sybmolSortedLst[i+1][1])[0]
 
             if ((splittedSymbol1 == sybmolSortedLst[i][2] and splittedSymbol2 == sybmolSortedLst[i+1][3]) \
-                and (sybmolSortedLst[i][-1] <= sybmolSortedLst[i+1][-1])) \
+                and (sybmolSortedLst[i][4] <= sybmolSortedLst[i+1][4])) \
                 or ((splittedSymbol1 == sybmolSortedLst[i][3] and splittedSymbol2 == sybmolSortedLst[i+1][2])\
-                   and (sybmolSortedLst[i][-1] >= sybmolSortedLst[i+1][-1])):
+                   and (sybmolSortedLst[i][4] >= sybmolSortedLst[i+1][4])):
 
                 mathchedOrders.append((sybmolSortedLst[i], sybmolSortedLst[i+1],))
 

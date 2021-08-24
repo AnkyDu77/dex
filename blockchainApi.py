@@ -10,6 +10,7 @@ from uuid import uuid4
 from sys import argv
 from urllib.parse import urlparse
 from flask import Flask, jsonify, request, send_from_directory
+from flask_cors import CORS
 
 from config import Config
 from blockchain import Blockchain
@@ -22,6 +23,7 @@ from syncPools import syncPools
 
 
 app = Flask(__name__)
+CORS(app)
 nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
 

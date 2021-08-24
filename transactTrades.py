@@ -8,8 +8,8 @@ def transactTrades(mathchedOrders, ordersList):
     # Get matched orders
     txDir = {}
     for i in range(len(mathchedOrders)):
-        tempLst = [mathchedOrders[i][0][0], mathchedOrders[i][1][0]]
-        txTempLst=[order for order in ordersList if order['sender'] in tempLst]
+        tempLst = [mathchedOrders[i][0][-1], mathchedOrders[i][1][-1]]
+        txTempLst=[order for order in ordersList if order['tradeTxId'] in tempLst]
         txDir[f'tx_{i}'] = txTempLst
 
     # Calculate txs amount
@@ -34,13 +34,13 @@ def transactTrades(mathchedOrders, ordersList):
             sellRecieveAddress = buyer['sender']
             sellSendToken = seller['send']
             sellSendAmount = min(seller['sendVol'], buyer['getVol'])
-            sellComissions = sellerComission*(sellSendAmount/seller['sendVol'])
+            sellComissions = (sellerComission/100)*(sellSendAmount/seller['sendVol'])
 
             buySendAddress = buyer['sender']
             buyRecieveAddress = seller['sender']
             buySendToken = seller['get']
             buySendAmount = sellSendAmount*tradePrice
-            buyComissions = buyerComission*(buySendAmount/buyer['sendVol'])
+            buyComissions = (buyerComission/100)*(buySendAmount/buyer['sendVol'])
 
             tradeSellTx = {
                 'timestamp': datetime.now(timezone.utc).timestamp(),
@@ -56,6 +56,7 @@ def transactTrades(mathchedOrders, ordersList):
             }
 
 
+
             tradeBuyTx = {
                 'timestamp': datetime.now(timezone.utc).timestamp(),
                 'symbol': seller['symbol'],
@@ -69,13 +70,13 @@ def transactTrades(mathchedOrders, ordersList):
                 'tradeTxId': buyerIdHash
             }
 
+
             # Decrease order vols; Fill (aka delete from trade pool) order if vols == 0
             txDir[txKeys[j]][0]['sendVol'] -= sellSendAmount
             txDir[txKeys[j]][0]['getVol'] -= buySendAmount
 
             txDir[txKeys[j]][1]['sendVol'] -= buySendAmount
             txDir[txKeys[j]][1]['getVol'] -= sellSendAmount
-
 
 
         elif tradeTxs[0]['get'] == symbolSplitted:
@@ -93,13 +94,13 @@ def transactTrades(mathchedOrders, ordersList):
             sellRecieveAddress = buyer['sender']
             sellSendToken = seller['send']
             sellSendAmount = min(seller['sendVol'], buyer['getVol'])
-            sellComissions = sellerComission*(sellSendAmount/seller['sendVol'])
+            sellComissions = (sellerComission/100)*(sellSendAmount/seller['sendVol'])
 
             buySendAddress = buyer['sender']
             buyRecieveAddress = seller['sender']
             buySendToken = seller['get']
             buySendAmount = sellSendAmount*tradePrice
-            buyComissions = buyerComission*(buySendAmount/buyer['sendVol'])
+            buyComissions = (buyerComission/100)*(buySendAmount/buyer['sendVol'])
 
 
 
@@ -118,6 +119,7 @@ def transactTrades(mathchedOrders, ordersList):
             }
 
 
+
             tradeBuyTx = {
                 'timestamp': datetime.now(timezone.utc).timestamp(),
                 'symbol': seller['symbol'],
@@ -131,12 +133,14 @@ def transactTrades(mathchedOrders, ordersList):
                 'tradeTxId': buyerIdHash
             }
 
+
             # Decrease order vols; Fill (aka delete from trade pool) order if vols == 0
             txDir[txKeys[j]][1]['sendVol'] -= sellSendAmount
             txDir[txKeys[j]][1]['getVol'] -= buySendAmount
 
             txDir[txKeys[j]][0]['sendVol'] -= buySendAmount
             txDir[txKeys[j]][0]['getVol'] -= sellSendAmount
+
 
         # Form tx and send it to common pool
         commonTxs.append(tradeSellTx)
