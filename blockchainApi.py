@@ -65,7 +65,8 @@ def mine():
 @app.route('/transactions/new', methods=['POST'])
 def newTx():
 
-    values = request.get_json()
+    # values = request.get_json()
+    values = json.loads(request.data)
     required = Config().REQUIRED_TX_FIELDS
     if not all(k in values for k in required):
         return jsonify({'MSG':'Missing values'}), 400
@@ -77,6 +78,12 @@ def newTx():
         return jsonify({'MSG': 'Transaction type error! Provide "common" or "trade" transaction'}), 400
 
     if type == 'common':
+
+
+
+        # Proof expenditure amount
+
+
 
         timestamp = datetime.now(timezone.utc).timestamp()
         symbol = values['symbol']
@@ -116,6 +123,11 @@ def newTx():
                                         comissionAmount=comissionAmount)
 
     elif type == 'trade':
+
+
+        # Proof expenditure amount
+
+
 
         timestamp = datetime.now(timezone.utc).timestamp()
         sender = values['sender']
@@ -288,11 +300,13 @@ def sendChData():
 def newWallet():
     if request.method == 'POST':
         psw = request.json['password']
-        blockchain.coinbase = createWallet(psw)
+        blockHash = blockchain.hash(blockchain.chain[-1])
+        blockchain.coinbase = createWallet(psw, blockHash, blockchain)
 
         return jsonify({"ADDRESS": blockchain.coinbase}), 200
 
 
+# ========!!!!!!! CHANGE COINBASE TO PARTICULAR AMOUNT !!!!!!!========
 @app.route('/wallet/login', methods=['POST'])
 def loginUser():
     if request.method == 'POST':
@@ -312,6 +326,13 @@ def logoutUser():
     blockchain.prkey = None
     blockchain.pubKey = None
     return jsonify({'MSG': True}), 200
+
+
+@app.route('/wallet/getBalance', methods=['POST'])
+def gBalance():
+    address = request.json['address']
+    balance = blockchain.getBalance(address)
+    return jsonify({'BALACNE': balance}), 200
 
 
 if __name__ == '__main__':

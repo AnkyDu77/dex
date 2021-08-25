@@ -16,11 +16,20 @@ from syncPools import syncPools
 from syncChains import syncChains
 
 
+class Account(object):
+    def __init__(self):
+        self.address = None
+        self.balance = None
+        self.blockHash = None
+        self.validHash = None
+
+
 class Blockchain(object):
     def __init__(self):
         self.cnfg = Config()
 
         self.chain=[]
+        self.accounts=[]
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
@@ -49,6 +58,12 @@ class Blockchain(object):
         else:
             # Genesis block creation
             self.newBlock(previousHash=1, proof=100)
+
+
+
+    def getBalance(self, address):
+        balance = [account.balance for account in self.accounts if account.address == address][0]
+        return balance
 
 
     def newBlock(self, proof, previousHash=None):

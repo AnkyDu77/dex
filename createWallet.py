@@ -4,11 +4,12 @@ import hashlib
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
+from blockchain import Account
 
 from config import Config
 
 
-def createWallet(password):
+def createWallet(password, blockHash, blockchain):
     # Create wallet ID
     uid = uuid.uuid4().hex
 
@@ -27,5 +28,17 @@ def createWallet(password):
     # Form address and return it to the user
     pubHash = hashlib.sha3_224(pubKey).hexdigest()
     address = Config().IDSTR+pubHash
+
+    # Registrer new account
+    newAccount = Account()
+    newAccount.address = address
+    newAccount.balance = 0.0
+    newAccount.blockHash = blockHash
+    newAccount.validHash = hashlib.sha3_224((newAccount.address+\
+                                            str(newAccount.balance)+\
+                                            newAccount.blockHash).encode()).hexdigest()
+
+    blockchain.accounts.append(newAccount)
+
 
     return address
