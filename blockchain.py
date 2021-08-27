@@ -16,12 +16,48 @@ from syncPools import syncPools
 from syncChains import syncChains
 
 
+class Pool(object):
+    def __init__(self):
+        self.name = None
+        self.symbol = None
+        self.poolBalance = None
+        self.accountBalance = {'token': self.symbol, 'balance': None} #???
+        self.blockHash = None
+        self.validHash = None
+        self.slt = None
+
+
 class Account(object):
     def __init__(self):
         self.address = None
         self.balance = None
         self.blockHash = None
         self.validHash = None
+        self.slt = None
+        self.tokenBalances = []
+
+
+    def proofExpenditure(self, sendAmount, blockHash):
+        if self.balance - sendAmount >= 0:
+            self.balance -= sendAmount
+            self.blockHash = blockHash
+            self.validHash = hashlib.sha3_224((self.address+\
+                                                    str(self.balance)+\
+                                                    self.blockHash).encode()).hexdigest()
+
+            return True
+        else:
+            return False
+
+
+    def makeTransaction(self, sendAmount, blockHash):
+        self.balance += sendAmount
+        self.blockHash = blockHash
+        self.validHash = hashlib.sha3_224((self.address+\
+                                                str(self.balance)+\
+                                                self.blockHash).encode()).hexdigest()
+        return True
+
 
 
 class Blockchain(object):
@@ -75,8 +111,8 @@ class Blockchain(object):
         :return: <dict> Новый блок
         """
 
-        # Match trade txs and route trades
-        self.transactTradeOrders()
+        # # Match trade txs and route trades
+        # self.transactTradeOrders()
 
         # Make new block
         block = {
@@ -200,10 +236,13 @@ class Blockchain(object):
         mathchedOrders = matchOrders(self.trade_transactions)
 
         txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
+        print('\n=====\nCommon Txs:\n',commonTxs, '\n')
 
         # Include tarde txs to common transaction pool
         for tx in commonTxs:
             self.current_transactions.append(tx)
+
+        print('\n=====\n current_transactions:\n',self.current_transactions, '\n')
 
         # Remove zero getVol transactions from tradeTxs pool
         txDirKeys = list(txDir.keys())

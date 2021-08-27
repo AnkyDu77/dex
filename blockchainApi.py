@@ -42,12 +42,25 @@ def mine():
     blockchain.newTransaction(
         sender=Config().MINEADDR,
         timestamp = datetime.now(timezone.utc).timestamp(),
-        recipient=nodeIdentifier,
+        recipient=blockchain.coinbase,
         sendAmount=1
     )
 
+    # Match trade txs and route trades
+    blockchain.transactTradeOrders()
+
+    # Make Transactions
+    blockHash = blockchain.hash(blockchain.chain[-1])
+    for transaction in blockchain.current_transactions:
+        try:
+            account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
+            account.makeTransaction(transaction['sendAmount'], blockHash)
+        except:
+            return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
+
     previousHash = blockchain.hash(lastBlock)
     block = blockchain.newBlock(proof, previousHash)
+
 
     syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
 
@@ -78,12 +91,6 @@ def newTx():
         return jsonify({'MSG': 'Transaction type error! Provide "common" or "trade" transaction'}), 400
 
     if type == 'common':
-
-
-
-        # Proof expenditure amount
-
-
 
         timestamp = datetime.now(timezone.utc).timestamp()
         symbol = values['symbol']
@@ -117,17 +124,26 @@ def newTx():
         except:
             return jsonify({'MSG': 'Simple tx not accepted. Try to sign in first'}), 400
 
+        try:
+            # Proof expenditure amount
+            account = [account for account in blockchain.accounts if account.address == sender][0]
+
+            print('\n=====\nAccount address:\n',account.address,'\n')
+
+            blockHash = blockchain.hash(blockchain.chain[-1])
+            proofExpenditure = account.proofExpenditure(sendAmount, blockHash)
+
+            if proofExpenditure == False:
+                return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+        except:
+            return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+
         index = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
                                         sender=sender, recipient=recipient,\
                                         sendAmount=sendAmount,\
                                         comissionAmount=comissionAmount)
 
     elif type == 'trade':
-
-
-        # Proof expenditure amount
-
-
 
         timestamp = datetime.now(timezone.utc).timestamp()
         sender = values['sender']
@@ -157,6 +173,20 @@ def newTx():
             signiture = signTransaction(str(transactionDict), blockchain.prkey)
         except:
             return jsonify({'MSG': 'Trade tx not accepted. Try to sign in first'}), 400
+
+
+        try:
+            # Proof expenditure amount
+            account = [account for account in blockchain.accounts if account.address == sender][0]
+
+            blockHash = blockchain.hash(blockchain.chain[-1])
+            proofExpenditure = account.proofExpenditure(sendVol, blockHash)
+
+            if proofExpenditure == False:
+                    return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+        except:
+            return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+
 
         index, syncStatus = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
                         price=price, send=send, sendVol=sendVol, get=get,\
@@ -301,24 +331,27 @@ def newWallet():
     if request.method == 'POST':
         psw = request.json['password']
         blockHash = blockchain.hash(blockchain.chain[-1])
-        blockchain.coinbase = createWallet(psw, blockHash, blockchain)
+        if len(blockchain.accounts) == 0:
+            address = createWallet(psw, blockHash, blockchain)
+            blockchain.coinbase = address
+        else:
+            address = createWallet(psw, blockHash, blockchain)
 
-        return jsonify({"ADDRESS": blockchain.coinbase}), 200
+        return jsonify({"ADDRESS": address}), 200
 
 
-# ========!!!!!!! CHANGE COINBASE TO PARTICULAR AMOUNT !!!!!!!========
+# ========!!!!!!! CHANGE COINBASE TO PARTICULAR ACCOUNT !!!!!!!========
 @app.route('/wallet/login', methods=['POST'])
 def loginUser():
     if request.method == 'POST':
         psw = request.json['password']
-        pubKey, prKey = authoriseUser(psw)
+        pubKey, prKey, address = authoriseUser(psw, blockchain.accounts)
         if prKey == False:
             return jsonify({'MSG': 'Wrong password or there is no wallet'}), 400
 
         blockchain.prkey = prKey
         blockchain.pubKey = pubKey
-        blockchain.coinbase = getCoinbase()
-        return jsonify({'MSG': True, 'ADDRESS': blockchain.coinbase}), 200
+        return jsonify({'MSG': True, 'ADDRESS': address}), 200
 
 
 @app.route('/wallet/logout', methods=['GET'])
@@ -332,7 +365,7 @@ def logoutUser():
 def gBalance():
     address = request.json['address']
     balance = blockchain.getBalance(address)
-    return jsonify({'BALACNE': balance}), 200
+    return jsonify({'BALACNE': {'token': 'ZSH', 'balance':balance}}), 200
 
 
 if __name__ == '__main__':
