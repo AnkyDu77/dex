@@ -57,6 +57,8 @@ def transactTrades(mathchedOrders, ordersList):
 
 
 
+
+
             tradeBuyTx = {
                 'timestamp': datetime.now(timezone.utc).timestamp(),
                 'symbol': seller['symbol'],
@@ -69,6 +71,7 @@ def transactTrades(mathchedOrders, ordersList):
                 'comissionAmount': buyComissions,
                 'tradeTxId': buyerIdHash
             }
+
 
 
             # Decrease order vols; Fill (aka delete from trade pool) order if vols == 0

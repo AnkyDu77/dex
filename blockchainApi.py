@@ -52,11 +52,17 @@ def mine():
     # Make Transactions
     blockHash = blockchain.hash(blockchain.chain[-1])
     for transaction in blockchain.current_transactions:
-        try:
-            account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
-            account.makeTransaction(transaction['sendAmount'], blockHash)
-        except:
-            return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
+        if transaction['symbol'] == 'zsh' or transaction['contract'] == 'zsh':
+            try:
+                account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
+                account.makeTransaction(transaction['sendAmount'], blockHash)
+            except:
+                return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
+        else:
+            try:
+                blockchain.makePoolTransaction(transaction['contract'], transaction['recipient'], transaction['sendAmount'])
+            except:
+                return jsonify({'MSG': f'Something went terribly wrong with pool transaction to recipient {transaction["recipient"]}'}), 400
 
     previousHash = blockchain.hash(lastBlock)
     block = blockchain.newBlock(proof, previousHash)
@@ -174,18 +180,27 @@ def newTx():
         except:
             return jsonify({'MSG': 'Trade tx not accepted. Try to sign in first'}), 400
 
+        if send == 'zsh':
+            try:
+                # Proof expenditure amount
+                account = [account for account in blockchain.accounts if account.address == sender][0]
 
-        try:
-            # Proof expenditure amount
-            account = [account for account in blockchain.accounts if account.address == sender][0]
+                blockHash = blockchain.hash(blockchain.chain[-1])
+                proofExpenditure = account.proofExpenditure(sendVol, blockHash)
 
-            blockHash = blockchain.hash(blockchain.chain[-1])
-            proofExpenditure = account.proofExpenditure(sendVol, blockHash)
-
-            if proofExpenditure == False:
+                if proofExpenditure == False:
                     return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
-        except:
-            return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+            except:
+                return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+
+        # Proof pool tokens expenditure
+        else:
+            try:
+                proofPoolExpenditure = blockchain.proofPoolExpenditure(send, sender, sendVol)
+                if proofPoolExpenditure == False:
+                    return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+            except:
+                return jsonify({'MSG': 'Smth went terribly wrong while pool expenditure approve process'}), 400
 
 
         index, syncStatus = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
@@ -329,7 +344,7 @@ def sendChData():
 @app.route('/wallet/new', methods=['POST'])
 def newWallet():
     if request.method == 'POST':
-        psw = request.json['password']
+        psw = json.loads(request.data)['password']
         blockHash = blockchain.hash(blockchain.chain[-1])
         if len(blockchain.accounts) == 0:
             address = createWallet(psw, blockHash, blockchain)
@@ -344,7 +359,7 @@ def newWallet():
 @app.route('/wallet/login', methods=['POST'])
 def loginUser():
     if request.method == 'POST':
-        psw = request.json['password']
+        psw = json.loads(request.data)['password']
         pubKey, prKey, address = authoriseUser(psw, blockchain.accounts)
         if prKey == False:
             return jsonify({'MSG': 'Wrong password or there is no wallet'}), 400
@@ -363,9 +378,23 @@ def logoutUser():
 
 @app.route('/wallet/getBalance', methods=['POST'])
 def gBalance():
-    address = request.json['address']
+    address = json.loads(request.data)['address']
     balance = blockchain.getBalance(address)
     return jsonify({'BALACNE': {'token': 'ZSH', 'balance':balance}}), 200
+
+
+@app.route('/pools/createPool', methods=['POST'])
+def crPool():
+    values = json.loads(request.data)
+    creationResult = blockchain.createPool(values['name'], values['symbol'].upper())
+    return jsonify({"MSG": creationResult}), 200
+
+
+@app.route('/pools/getPools', methods=['GET'])
+def gPools():
+    pools = blockchain.getPools()
+    return json.dumps({"MSG": pools}), 200
+
 
 
 if __name__ == '__main__':

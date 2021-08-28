@@ -21,10 +21,9 @@ class Pool(object):
         self.name = None
         self.symbol = None
         self.poolBalance = None
-        self.accountBalance = {'token': self.symbol, 'balance': None} #???
+        self.accountsBalance = {}
         self.blockHash = None
         self.validHash = None
-        self.slt = None
 
 
 class Account(object):
@@ -34,7 +33,6 @@ class Account(object):
         self.blockHash = None
         self.validHash = None
         self.slt = None
-        self.tokenBalances = []
 
 
     def proofExpenditure(self, sendAmount, blockHash):
@@ -66,6 +64,7 @@ class Blockchain(object):
 
         self.chain=[]
         self.accounts=[]
+        self.pools = []
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
@@ -139,8 +138,36 @@ class Blockchain(object):
 
         return block
 
-    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0, price=0.0, recipient=None,\
-    symbol='zsh', type="common", contract=None,\
+
+    # Approve non-native tokens expenditure
+    def proofPoolExpenditure(self, symbol, address, sendAmount):
+        pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
+        if pool.accountsBalance[address] - sendAmount >= 0:
+            pool.accountsBalance[address] -= sendAmount
+            pool.blockHash = self.hash(self.chain[-1])
+            pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
+                                                json.dumps(pool.accountsBalance)+\
+                                                pool.blockHash).encode()).hexdigest()
+            return True
+        else:
+            return False
+
+
+    # Make non-native tokens transaction
+    def makePoolTransaction(self, symbol, address, getAmount):
+        pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
+        pool.accountsBalance[address] += getAmount
+        pool.blockHash = self.hash(self.chain[-1])
+        pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
+                                            json.dumps(pool.accountsBalance)+\
+                                            pool.blockHash).encode()).hexdigest()
+        return True
+
+
+
+
+    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0,\
+    price=0.0, recipient=None, symbol='zsh', type="common", contract=None,\
     send=None, get=None, sendVol=0.0,\
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
 
@@ -256,6 +283,56 @@ class Blockchain(object):
 
         for removeOrder in toRemove:
             self.trade_transactions.remove(removeOrder)
+
+
+
+    # Create new pool
+    def createPool(self, name, symbol):
+        pool = Pool()
+        pool.name = name
+        pool.symbol = symbol
+        pool.poolBalance = 0.0
+
+        # Set zero accounts balances
+        for account in self.accounts:
+            pool.accountsBalance[account.address] = 10000.0
+
+        pool.blockHash = self.hash(self.chain[-1])
+        pool.validHash =  hashlib.sha3_224((str(pool.poolBalance)+\
+                                            json.dumps(pool.accountsBalance)+\
+                                            pool.blockHash).encode()).hexdigest()
+
+        # Add new pool to pools list
+        self.pools.append(pool)
+
+        return f'New pool was created! Name: {pool.name}, Symbol: {pool.symbol}'
+
+
+    def getPools(self):
+
+        requestedPools = []
+        for pool in self.pools:
+            poolDict = {
+                'name': pool.name,
+                'symbol': pool.symbol,
+                'poolBalance': pool.poolBalance,
+                'accounts': pool.accountsBalance,
+                'blockHash': pool.blockHash,
+                'validHash': pool.validHash
+            }
+            requestedPools.append(poolDict)
+
+        return requestedPools
+
+
+
+
+
+
+
+
+
+
 
 
 
