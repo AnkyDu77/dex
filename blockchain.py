@@ -262,6 +262,9 @@ class Blockchain(object):
         """
         mathchedOrders = matchOrders(self.trade_transactions)
 
+        print(f"\n=====\nmathchedOrders: {mathchedOrders}\n\n")
+        print(f"\n=====\ntrade_transactions: {self.trade_transactions}\n\n")
+
         txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
         print('\n=====\nCommon Txs:\n',commonTxs, '\n')
 
@@ -276,7 +279,7 @@ class Blockchain(object):
         toRemove = []
 
         for key in txDirKeys:
-            toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0]
+            toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0 or order['getVol']<0.000099]
             if len(toRemoveTemp) > 0:
                 for j in range(len(toRemoveTemp)):
                     toRemove.append(toRemoveTemp[j])
@@ -381,7 +384,7 @@ class Blockchain(object):
         guess = f'{lastProof}{proof}'.encode()
         guessHash = hashlib.sha256(guess).hexdigest()
 
-        return guessHash[:4]=="0000"
+        return guessHash[:len(Config().MINING_COMPLEXITY)]==Config().MINING_COMPLEXITY
 
 
     def registerNode(self, address):

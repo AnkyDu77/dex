@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Zanshin Exchange</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+        :root {
+            --base-font-size: 14px;
+            --base-height: 40px;
+            --primary-color: #4C5C97;
+            --secondary-color: #BAC8FE; //animations
+        }
+
+        body {
+            background: url('../static/images/background-image-2-3.png') no-repeat fixed top right;
+            background-size: cover;
+            padding: 19px 13% 19px 13%;
+            /*height: 100%;*/
+            /*overflow: hidden;*/
+        }
+
+        #header {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+            align-self: stretch;
+            margin-bottom: 30px;
+        }
+
+        .header-buttons {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            padding: 0 15px;
+            width: 30%;
+        }
+
+        .header-buttons a {
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .first-btn {
+            padding-right: 20%;
+            text-align: center;
+            border-right: 2px solid #FFFFFF;
+        }
+
+        .second-btn {
+            padding-left: 20%;
+            text-align: center;
+        }
+
+        #acc-btn {
+            padding: 10px 0;
+            border-bottom: 2px solid transparent;
+            transition: border-bottom-color .2s;
+        }
+
+        #triangle{
+            width: 0;
+            height: 0;
+            margin-left: 27%;
+            border-style: solid;
+            border-width: 0 10px 10px 10px;
+            border-color: transparent transparent #F2F8FF transparent;
+        }
+
+        #account-wrapper {
+            opacity: 0;
+            transition: opacity .2s;
+            width: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+
+        }
+
+        #account-window-with-triangle{
+            margin-top: -10px;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            width: 30%;
+            z-index: 10;
+            height: 340px;
+        }
+
+        #account-window {
+            height: 100%;
+            padding: 5%;
+            background: #F2F8FF;
+            border-radius: 15px;
+        }
+
+        #account-content{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #account-address-wrapper {
+            position: relative;
+            height: 40px;
+            border: none;
+            border-radius: 30px;
+            flex: none;
+            order: 0;
+            flex-grow: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #BAC8FE;
+            margin-top: 10px;
+            width: 70%;
+        }
+
+        #account-address {
+            margin: 0px;
+            position: static;
+            font-family: Open Sans;
+            font-size: var(--base-font-size);
+            line-height: 20px;
+            color: #FFFFFF;
+            margin-left: 25px;
+        }
+
+        #copy-icon {
+            font-size: 20px;
+            padding: 0 10px;
+            color: white;
+            line-height: 40px;
+            vertical-align: middle;
+            cursor: pointer;
+        }
+
+        #copy-message-with-triangle {
+            opacity: 0;
+            transition: opacity 0.5s;
+            display: flex;
+            flex-direction: column;
+            position: absolute;
+            width: 100%;
+            z-index: 10;
+            align-items: center;
+            top: 34%;
+        }
+
+        #copy-message {
+            background: #4C5C97;
+            border-radius: 10px;
+            width: 50%;
+            text-align: center;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: -96%;
+            font-family: "Open Sans";
+            font-size: 14px;
+            color: white;
+        }
+
+        #copy-message-triangle {
+            margin-top: -39px;
+            content: "";
+            position: absolute;
+            top: -34%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: transparent transparent #4C5C97 transparent;
+        }
+
+        #tokens-list-title {
+            font-family: Open Sans;
+            font-size: var(--base-font-size);
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #4C5C97;
+            padding: 15px 20px;
+            border-bottom: 4px solid #BAC8FE;
+        }
+
+        #tokens-list {
+            width: 100%;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            height: 12em;
+            overflow: auto;
+        }
+
+        #tokens-list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #tokens-list::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, .5);
+        }
+
+        #tokens-list li {
+            display: block;
+            padding: 4px 15px 8px;
+            margin: 0px 34px;
+            line-height: var(--base-height);
+            margin-bottom: 5px;
+            text-decoration: none;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            color: #4C5C97;
+            border-bottom: 1px solid #E1E8F5;
+        }
+
+        #content {
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-start;
+            margin-top: 2%;
+        }
+
+        #cryptocurrency-pairs-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding: 3% 4%;
+            width: 30%;
+
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+        }
+
+        #current-cryptocurrency-pair {
+            margin: 0 0 30px 0;
+            width: 80%;
+            text-align: center;
+            line-height: 38px;
+            font-family: "Open Sans";
+            font-weight: bold;
+            font-size: 18px;
+            color: #FFFFFF;
+            border-bottom: 2px solid rgba(255, 255, 255, .5);
+        }
+
+        #search-input-wrapper {
+            display: flex;
+            width: 100%;
+            flex-direction: row;
+            height: var(--base-height);
+            border: 1.5px solid transparent;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            background: #FFFFFF;
+        }
+
+        #search-input-wrapper:hover {
+            border: 1.5px solid var(--secondary-color);
+        }
+
+        #search-icon {
+            font-size: 20px;
+            padding: 0 10px;
+            color: var(--primary-color);
+            line-height: 40px;
+            vertical-align: middle;
+        }
+
+        #search-input{
+            width: 100%;
+            font-family: "Open Sans";
+            border: none;
+            background: transparent;
+            font-size: var(--base-font-size);
+        }
+
+        #search-input:focus {
+            outline: none;
+        }
+
+        #list {
+            width: 100%;
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            height: 10em;
+            overflow: auto;
+        }
+
+        #list::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        #list::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, .5);
+        }
+
+        #list li {
+            display: block;
+            padding: 0 15px;
+            line-height: var(--base-height);
+            margin-bottom: 5px;
+            text-decoration: none;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            color: #FFFFFF;
+        }
+
+        #list li:hover {
+            border-radius: 15px;
+            background-color: rgba(255, 255, 255, .2);
+        }
+
+        #wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 3% 4%;
+            /*left: 35% - cryptocurrency-pairs-wrapper width and margin*/
+            margin-left: 3%;
+            width: 60%;
+
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+        }
+
+        .toggle-button {
+            position: relative;
+            height: var(--base-height);
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 30px;
+            margin-bottom: 30px;
+        }
+
+        .toggle-button input {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            border-radius: 30px;
+            outline: none;
+            appearance: none;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            color: #FFFFFF;
+        }
+
+        .toggle-button input:before,
+        .toggle-button input:after {
+            z-index: 2;
+            position: absolute;
+            text-align: center;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .toggle-button input:before {
+            content: "Купить";
+            width: 50%;
+            left: 0;
+        }
+
+        .toggle-button input:after {
+            content: "Продать";
+            width: 50%;
+            right: 0;
+        }
+
+        .toggle-button label {
+            z-index: 1;
+            position: absolute;
+            /*width: 50%;*/
+            top: 0;
+            bottom: 0;
+            border-radius: 30px;
+        }
+
+        .toggle-button.buy-btn input:checked + label {
+            right: 0;
+            left: 50%;
+            background: var(--primary-color);
+            transition: left 0.4s 0.2s, right 0.5s;
+        }
+
+        .toggle-button.buy-btn input:not(:checked) + label {
+            left: 0;
+            right: 50%;
+            background: var(--primary-color);
+            transition: left 0.5s, right 0.4s 0.2s;
+        }
+
+        #available-amount {
+            text-align: right;
+            margin: 0px 0;
+            font-family: "Open Sans";
+            font-size: 18px;
+            color: #FFFFFF;
+        }
+
+        .field-wrapper {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 0 20px;
+            font-family: "Open Sans";
+            height: var(--base-height);
+            font-size: var(--base-font-size);
+            background: #FFFFFF;
+            border: 1.5px solid transparent;
+            border-radius: 15px;
+        }
+
+        #price-input-wrapper:hover, #amount-input-wrapper:hover {
+            border: 1.5px solid var(--secondary-color);
+        }
+
+        .field-name {
+            color: var(--primary-color);
+            opacity: 60%;
+            width: 30%;
+        }
+
+        .cryptocurrency-name {
+            width: 15%;
+            color: var(--primary-color);
+            text-align: right;
+        }
+
+        .input {
+            width: 40%;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            height: fit-content;
+            text-align: right;
+            color: var(--primary-color);
+            border: none;
+        }
+
+        .input:focus {
+            outline: none;
+        }
+
+        /* webkit input*/
+        ::-webkit-input-placeholder { text-align:right; color: var(--primary-color); opacity: 60%;}
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        /* mozilla input */
+        input:-moz-placeholder { text-align:right; }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        #total-price {
+            width: 45%;
+            color: var(--primary-color);
+            text-align: right;
+        }
+
+        #horizontal-line {
+            border-bottom: 2px solid #FFFFFF;
+            width: 80%;
+            align-self: center;
+            margin-bottom: 15px;
+            opacity: 50%;
+        }
+
+        #btn-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: static;
+            align-self: stretch;
+
+            flex: none;
+            order: 2;
+            flex-grow: 0;
+            margin-top: 20px;
+        }
+
+        #btn {
+            position: static;
+            height: var(--base-height);
+            border:  none;
+
+            background: var(--primary-color);
+            border-radius: 15px;
+
+            /* Inside Auto Layout */
+            flex: none;
+            order: 0;
+            flex-grow: 0;
+            transition: background .3s;
+        }
+
+        #btn:hover {
+            background: var(--secondary-color);
+            transition: background .3s;
+        }
+
+        #btn-text {
+            margin: 0px;
+            position: static;
+            font-family: Open Sans;
+            font-size: var(--base-font-size);
+            line-height: 20px;
+            color: #FFFFFF;
+        }
+
+        #loader {
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            border-top: 3px solid transparent;
+            width: 12px;
+            height: 12px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .animate-bottom {
+            position: relative;
+            -webkit-animation-name: animatebottom;
+            -webkit-animation-duration: 1s;
+            animation-name: animatebottom;
+            animation-duration: 1s
+        }
+
+        @-webkit-keyframes animatebottom {
+            from { bottom:-100px; opacity:0 }
+            to { bottom:0px; opacity:1 }
+        }
+
+        @keyframes animatebottom {
+            from{ bottom:-100px; opacity:0 }
+            to{ bottom:0; opacity:1 }
+        }
+
+        #chartContainer {
+            width: 100%;
+            height: 330px;
+            position: relative;
+        }
+
+        .floating-tooltip-2 {
+            width: fit-content;
+            height: fit-content;
+            position: absolute;
+            display: none;
+            padding: 8px;
+            font-size: 12px;
+            color: var(--primary-color);
+            background-color: rgba(255, 255, 255, 1);
+            text-align: left;
+            z-index: 1000;
+            pointer-events: none;
+            border: 1px solid #4C5C97;
+            border-radius: 5px;
+            font-family: "Open Sans";
+        }
+
+        #order-book {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            width: 30%;
+            margin-left: 2%;
+            font-family: "Open Sans";
+            color: white;
+            font-size: 11px;
+        }
+
+        .table {
+            width: 100%;
+            table-layout: fixed;
+        }
+
+        #asks-table, #bids-table {
+            border-spacing: 5px 12px;
+        }
+
+        td {
+            text-align: right;
+        }
+
+        .link {
+            font-family: Open Sans;
+            line-height: 22px;
+            color: #8299FE;
+            font-size: var(--base-font-size);
+            text-decoration: none;
+        }
+
+        #btn-text2 {
+            font-family: Open Sans;
+            font-size: var(--base-font-size);
+            line-height: 20px;
+            color: #FFFFFF;
+        }
+
+        #auth-error {
+            display: none;
+            position: static;
+            height: var(--base-height);
+            border: none;
+            background: var(--primary-color);
+            border-radius: 15px;
+            flex: none;
+            order: 0;
+            flex-grow: 0;
+            /*display: flex;*/
+            align-items: center;
+            justify-content: center;
+        }
+
+        #total-and-btn-wrapper {
+            display: flex;
+            flex-direction: column;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
+        }
+
+        #tabs-wrapper {
+            margin-top: 2%;
+            width: 100%;
+            height: 400px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+        }
+
+        #tabs-buttons {
+            width: 30%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+        }
+
+        #orders-history-btn, #open-orders-btn {
+            transition: border-bottom-color 0.3s;
+            border-bottom: 2px solid;
+            border-bottom-color: transparent;
+        }
+
+        .tab-links {
+            line-height: var(--base-height);
+            font-size: var(--base-font-size);
+            font-family: "Open Sans";
+            color: #FFFFFF;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        #open-orders-table, #orders-history-table {
+            margin-top: 20px;
+            border-collapse: collapse;
+            font-family: "Open Sans";
+            font-size: 12px;
+            color: #FFFFFF;
+        }
+
+        #open-orders-table tr td{
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        #open-orders-table th {
+            font-weight: normal;
+        }
+
+        #open-orders-table tr td:nth-last-child(-n+1){
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        #open-orders-table tr td:nth-child(1) {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        #open-orders-table th:nth-last-child(-n+1){
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        #open-orders-table th:nth-child(1) {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        #open-orders-table thead tr{
+            line-height: var(--base-height);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        #orders-history-table tr td{
+            text-align: center;
+            padding: 10px 0;
+        }
+
+        #orders-history-table th {
+            font-weight: normal;
+        }
+
+        #orders-history-table tr td:nth-last-child(-n+1){
+            float: right;
+            padding-right: 10px;
+        }
+
+        #orders-history-table tr td:nth-child(1) {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        #orders-history-table th:nth-last-child(-n+1){
+            text-align: right;
+            padding-right: 20px;
+        }
+
+        #orders-history-table th:nth-child(1) {
+            text-align: left;
+            padding-left: 20px;
+        }
+
+        #orders-history-table thead tr{
+            line-height: var(--base-height);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tables-info {
+            display: none;
+            margin-top: 12%;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            color: #FFFFFF;
+            width: 100%;
+            text-align: center;
+        }
+
+</style>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+          rel="stylesheet">
+</head>
+<body>
+<div id="header">
+    <a href=""><img src="../static/images/zanshin-logo.png" style="height: 38px;  margin-left: 1px;"></a>
+    <div class="header-buttons" id="auth-buttons">
+        <div class="first-btn" ><a href="login.html">Вход</a></div>
+        <div class="second-btn"><a href="sign_up.html">Регистрация</a></div>
+    </div>
+    <div class="header-buttons" id="acc-buttons" style="display: none;">
+        <div class="first-btn" ><a id="acc-btn">Мой аккаунт</a></div>
+        <div class="second-btn"><a id="exit-btn">Выход</a></div>
+    </div>
+</div>
+<div id="account-wrapper">
+    <div id="account-window-with-triangle">
+        <div id="triangle"></div>
+        <div id="account-window">
+            <div id="account-content">
+                <div id="account-address-wrapper">
+                    <span id="account-address"></span>
+                    <div id="copy-icon-wrapper">
+                        <span id="copy-icon" class="material-icons-outlined">
+                        content_copy
+                        </span>
+                    </div>
+
+                </div>
+                <div id="copy-message-with-triangle">
+                    <div id="copy-message-triangle"></div>
+                    <span id="copy-message">Адрес скопирован</span>
+                </div>
+                <span id="tokens-list-title">
+                    Активы
+                </span>
+                <ul id="tokens-list"></ul>
+            </div>
+        </div>
+    </div>
+</div>
+<div style="display: flex; flex-direction: column; width: 100%; height: 100%">
+    <div style="display: flex; flex-direction: row; width: 100%;">
+        <div style="display: flex; flex-direction: column; width: 68%;">
+            <div id="chartContainer"><div class="floating-tooltip-2" id="tool-tip"></div></div>
+            <div id="content">
+                <div id="cryptocurrency-pairs-wrapper">
+                    <div id="current-cryptocurrency-pair">BTC/USDT</div>
+                    <div id="search-input-wrapper">
+                        <span class="material-icons-outlined" id="search-icon"> search </span>
+                        <input type="text" id="search-input">
+                    </div>
+                    <ul id="list">
+                    </ul>
+                </div>
+                <div id="wrapper">
+                <span class="toggle-button buy-btn">
+                    <input type="checkbox" name="" id="switch">
+                    <label for="switch"></label>
+                </span>
+                    <!--    <div id="available-amount">Доступно 0 USDT</div>-->
+                    <div class="field-wrapper" id="price-input-wrapper">
+                        <div class="field-name">Цена</div>
+                        <input type="number" name="input" class="input" id="price-input" placeholder="0">
+                        <div class="cryptocurrency-name" id="second-cryptocurrency">USDT</div>
+                    </div>
+                    <div class="field-wrapper" id="amount-input-wrapper">
+                        <div class="field-name">Количество</div>
+                        <input type="number" name="input" class ="input" id="amount-input" placeholder="0">
+                        <div class="cryptocurrency-name" id="first-cryptocurrency">ZSH</div>
+                    </div>
+                    <div id="horizontal-line"></div>
+                    <div id="total-and-btn-wrapper">
+                        <div class="field-wrapper" id="total-price-field">
+                            <div class="field-name">Всего</div>
+                            <div id="total-price"></div>
+                            <div class="cryptocurrency-name" id="total-cryptocurrency">USDT</div>
+                        </div>
+                        <div id="btn-wrapper">
+                            <button id="btn">
+                                <div id="loader"></div>
+                                <div id="btn-text">Купить ZSH</div>
+                            </button>
+                            <div id="auth-error">
+                                <div>
+                                    <a href="login.html" class="link">Войдите</a>
+                                    <span id="btn-text2"> или </span>
+                                    <a href="sign_up.html" class="link">Зарегистрируйтесь</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="order-book">
+            <div style="padding: 4%; height: 100%">
+                <div style="height: 48%">
+                    <table  id="asks-table" class="table">
+                        <thead>
+                        <tr>
+                            <th scope="col" id="table-price-col-1">Цена(USDT)</th>
+                            <th scope="col" id="table-amount-col-1">Количество(ZSH)</th>
+                            <th scope="col">Всего</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+                <table id="bids-table" class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col" id="table-price-col-2">Цена(USDT)</th>
+                        <th scope="col" id="table-amount-col-2">Количество(ZSH)</th>
+                        <th scope="col">Всего</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div id="tabs-wrapper">
+        <div style="padding: 2%">
+            <div id="tabs-buttons">
+                <button class="tab-links" id="open-orders-btn" onclick="openTab(event, 'open-orders')">Открытые сделки</button>
+                <button class="tab-links" id="orders-history-btn" onclick="openTab(event, 'orders-history')">История сделок</button>
+            </div>
+            <div id="open-orders" class="tab-content">
+                <table  id="open-orders-table" class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Пара</th>
+                        <th scope="col">Тип</th>
+                        <th scope="col">Направление</th>
+                        <th scope="col">Цена</th>
+                        <th scope="col">Количество</th>
+                    </tr>
+                    </thead>
+                    <tbody id="open-orders-table-body">
+                    </tbody>
+                </table>
+                <div class="tables-info" id="open-orders-info">У вас пока нет открытых сделок</div>
+            </div>
+
+            <div id="orders-history" class="tab-content">
+                <table  id="orders-history-table" class="table">
+                    <thead>
+                    <tr>
+                        <th scope="col">Дата</th>
+                        <th scope="col">Пара</th>
+                        <th scope="col">Тип</th>
+                        <th scope="col">Направление</th>
+                        <th scope="col">Цена</th>
+                        <th scope="col">Статус</th>
+                    </tr>
+                    </thead>
+                    <tbody id="orders-history-table-body">
+                    </tbody>
+                </table>
+                <div class="tables-info" id="orders-history-info">У вас пока нет выполненных сделок</div>
+            </div>
+        </div>
+        </div>
+</div>
+</body>
+<script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+<script type="text/javascript" src="../static/scripts/dynamicCharts/index.js"></script>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script type="text/javascript" src="../static/scripts/index.js"></script>
+<script>
+    const openTab = (evt, tabName) => {
+        const $openOrdersBtn = document.getElementById('open-orders-btn');
+        const $ordersHistoryBtn = document.getElementById('orders-history-btn');
+
+        if (tabName === 'open-orders') {
+            $openOrdersBtn.style.borderBottomColor = '#FFFFFF';
+            $ordersHistoryBtn.style.borderBottomColor = 'transparent';
+        }
+        else {
+            $openOrdersBtn.style.borderBottomColor = 'transparent';
+            $ordersHistoryBtn.style.borderBottomColor = '#FFFFFF';
+        }
+        // Declare all variables
+        let i,
+            tabcontent,
+            tablinks;
+
+        // Get all elements with class="tabcontent" and hide them
+        tabcontent = document.getElementsByClassName("tab-content");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+
+        // Get all elements with class="tablinks" and remove the class "active"
+        tablinks = document.getElementsByClassName("tab-links");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
+        // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+
+</script>
+</html>
+
+

@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Zanshin Login</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css?family=Open+Sans');
+
+        :root {
+            --primary-color: #4C5C97;
+            --secondary-color: #F2F8FF;
+        }
+
+        body {
+            background: url('../static/images/background-image-2-3.png') top right no-repeat;
+            background-attachment: fixed;
+            background-size: cover;
+            /*padding-top: 19px;*/
+            padding: 19px 13% 13%;
+        }
+
+        #header {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: flex-start;
+            align-self: stretch;
+            margin-bottom: 50px;
+        }
+
+        #content {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            min-width: 480px;
+        }
+
+        #wrap-content {
+            width: 320px;
+            background: var(--secondary-color);
+            border-radius: 15px;
+            overflow: hidden;
+            padding: 70px 10%;
+            min-width: 300px;
+            box-shadow: 0 5px 10px 0 rgb(0 0 0 / 10%);
+            -moz-box-shadow: 0 5px 10px 0 rgba(0,0,0,.1);
+            -webkit-box-shadow: 0 5px 10px 0 rgb(0 0 0 / 10%);
+            -o-box-shadow: 0 5px 10px 0 rgba(0,0,0,.1);
+            -ms-box-shadow: 0 5px 10px 0 rgba(0,0,0,.1);
+        }
+
+        #form {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-width: 300px;
+        }
+
+        #title {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            flex-direction: column;
+            margin-bottom: 35px;
+        }
+
+        .name {
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: 600;
+            font-size: 22px;
+            line-height: 30px;
+            color: var(--primary-color);
+            margin-bottom: 13px;
+        }
+
+        .welcome-text {
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 27px;
+            color: var(--primary-color);
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .field label {
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 27px;
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+
+        .field input {
+            display: flex;
+            max-width: 100%;
+            flex-direction: row;
+            height: 56px;
+            border: 1px solid var(--primary-color);
+            border-radius: 15px;
+            margin-bottom: 15px;
+            background: var(--secondary-color);
+            transition-duration: .3s;
+            font-family: "Open Sans";
+            font-size: 18px;
+            color: var(--primary-color);
+            padding: 0 10px;
+        }
+
+        .field input:focus {
+            outline: 0;
+            border: 1px solid #8299fe;
+
+        }
+
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active  {
+            -webkit-text-fill-color: var(--primary-color) !important;
+            -webkit-box-shadow: 0 0 0 30px var(--secondary-color) inset !important;
+        }
+
+        /* webkit input*/
+        ::-webkit-input-placeholder { color: var(--primary-color); opacity: 60%;}
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+        }
+
+        #btn-wrapper{
+            padding-top: 36px;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        #btn {
+            transition: background .3s;
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            background: var(--primary-color);
+            border-radius: 15px;
+            align-items: center;
+            padding: 0 20px;
+            height: 56px;
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 27px;
+            color: #FFFFFF;
+            border: none;
+        }
+
+        #btn:hover {
+            background: #A8BAF6;
+            transition: background .3s;
+        }
+
+        #text-link {
+            margin-top: 16px;
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 27px;
+            display: flex;
+            align-items: center;
+            color: #8299FE;
+            text-align: left;
+            width: 100%;
+            text-decoration: none;
+        }
+
+        #loader {
+            margin-left: auto;
+            margin-right: auto;
+            display: none;
+            border: 3px solid #FFFFFF;
+            border-radius: 50%;
+            border-top: 3px solid transparent;
+            width: 12px;
+            height: 12px;
+            -webkit-animation: spin 2s linear infinite;
+            animation: spin 2s linear infinite;
+        }
+
+        @-webkit-keyframes spin {
+            0% { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @-webkit-keyframes animatebottom {
+            from { bottom:-100px; opacity:0 }
+            to { bottom:0px; opacity:1 }
+        }
+
+        @keyframes animatebottom {
+            from{ bottom:-100px; opacity:0 }
+            to{ bottom:0; opacity:1 }
+        }
+
+    </style>
+</head>
+<body>
+    <div id="header">
+        <a href="index.html"><img src="../static/images/zanshin-logo.png" style="height: 38px;  margin-left: 1px;"></a>
+    </div>
+    <div id="content">
+        <div id="wrap-content">
+            <div id="form">
+                <div id="title">
+                    <span class="name">Вход в аккаунт</span>
+                    <span class="welcome-text">Добро пожаловать в Zanshin!</span>
+                </div>
+<!--                <div class="field">-->
+<!--                    <label for="email">E-mail</label>-->
+<!--                    <input type="email"  name="email" id="email" required>-->
+<!--                </div>-->
+                <div class="field">
+                    <label for="password">Пароль</label>
+                    <input type="password"  placeholder="Введите пароль" name="password" id="password" required>
+                </div>
+                <div id="btn-wrapper">
+
+                    <button id="btn">
+                        <div id="loader"></div>
+                        <span id="btn-text">Войти в аккаунт</span>
+                    </button>
+                </div>
+                <a href="sign_up.html" id="text-link">Зарегистрироваться</a>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
+<script>
+    $(function () {
+        const API_URL = "http://0.0.0.0:5000";
+        //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
+        const $main = "#4C5C97";
+        const $error = "#E27B7B";
+        const $success = "#9FAF90";
+        const $passwordInput = document.getElementById("password");
+        const $btn = document.getElementById("btn");
+        const $loader = document.getElementById("loader");
+        const $btnText = document.getElementById("btn-text");
+
+        $btn.onclick = async () => {
+            try {
+                let password = $passwordInput.value;
+                if (password === '') {
+                    setMessageToButton("Введите пароль", $error);
+                    return;
+                }
+                showLoader();
+                let result = await postData(API_URL + "/wallet/login", {password});
+                hideLoader();
+                if (result.status === 500)
+                    setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+                else {
+                    result = await result.json()
+                    if (result.MSG !== true && result.MSG.includes("Wrong password"))
+                        setMessageToButton("Неправильный пароль", $error);
+                    else {
+                        setMessageToButton("", $main);
+                        localStorage.setItem('walletAddress', result.ADDRESS);
+                        document.location.href = "index.html";
+                    }
+                }
+            } catch (e) {
+                hideLoader();
+                setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+            }
+
+
+        }
+        const setMessageToButton = (message, backgroundColor = $main) => {
+            $btn.style.background = backgroundColor;
+            $btn.style.pointerEvents = "none";
+            $btnText.innerText = message;
+        }
+
+        $passwordInput.oninput = () => {
+            returnOldButton();
+        }
+
+        const returnOldButton = () => {
+            $btn.style.pointerEvents = "auto";
+            $btn.style.removeProperty("background");
+            $btnText.innerText = "Войти в аккаунт";
+        }
+
+        const showLoader = () => {
+            $btnText.style.display = "none";
+            $btn.style.pointerEvents = "none";
+            $loader.style.display = "block";
+        }
+
+        const hideLoader = () => {
+            $btn.style.background = $main;
+            $loader.style.display = "none";
+            $btnText.style.display = "block";
+        }
+
+        const postData = async (url = '', data = {}) => {
+            const response = await fetch(url, {
+                method: 'POST', // *GET, POST, PUT, DELETE, etc.
+                headers: {
+                    'Accept': '/',
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '/',
+                },
+                cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+                body: JSON.stringify(data) // body data type must match "Content-Type" header
+            });
+            return await response; // parses JSON response into native JavaScript objects
+        }
+    })
+</script>
+</html>

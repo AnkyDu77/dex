@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from uuid import uuid4
 from sys import argv
 from urllib.parse import urlparse
-from flask import Flask, jsonify, request, send_from_directory
+from flask import render_template, Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 
 from config import Config
@@ -30,7 +30,16 @@ blockchain = Blockchain()
 @app.route('/', methods=['GET'])
 @app.route('/index.html', methods=['GET'])
 def index():
-    return jsonify({'MSG': 'Working'}), 200
+    # return jsonify({'MSG': 'Working'}), 200
+    return render_template('index.html')
+
+@app.route('/login.html', methods=['GET'])
+def login():
+    return render_template('login.html')
+
+@app.route('/sign_up.html', methods=['GET'])
+def sign_up():
+    return render_template('sign_up.html')
 
 
 @app.route('/mine', methods=['GET'])
@@ -144,7 +153,7 @@ def newTx():
         except:
             return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
 
-        index = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
+        index, syncStatus = blockchain.newTransaction(type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
                                         sender=sender, recipient=recipient,\
                                         sendAmount=sendAmount,\
                                         comissionAmount=comissionAmount)
@@ -208,7 +217,7 @@ def newTx():
                         getVol=getVol, comissionAmount=comissionAmount)
 
 
-    return jsonify({'MSG': index, 'SYNC': syncStatus}), 201
+    return jsonify({'MSG': syncStatus}), 201
 
 
 @app.route('/transactions/sync', methods=['POST'])
@@ -380,7 +389,7 @@ def logoutUser():
 def gBalance():
     address = json.loads(request.data)['address']
     balance = blockchain.getBalance(address)
-    return jsonify({'BALACNE': {'token': 'ZSH', 'balance':balance}}), 200
+    return jsonify({'BALACNES': [{'token': 'ZSH', 'balance':balance}]}), 200
 
 
 @app.route('/pools/createPool', methods=['POST'])
