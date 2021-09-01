@@ -205,6 +205,7 @@ class Blockchain(object):
                 return self.lastBlock['index']+1, syncStatus
 
             # Check sigitures
+            print(f'\n======\nself.pubKey: {self.pubKey}\n\n')
             verifStatus = verifyTxSignature(sender, self.pubKey, str(simpleTx), txsig)
             if verifStatus == True:
                 self.current_transactions.append(simpleTx)
@@ -260,32 +261,38 @@ class Blockchain(object):
         5. Reduce volumes of amount to send of trade txs
         6. If amount to send of trade tx equals to zero -- append this tx to common txs pool and append it to block
         """
-        mathchedOrders = matchOrders(self.trade_transactions)
+        # mathchedOrders = matchOrders(self.trade_transactions)
+        #
+        # print(f"\n=====\nmathchedOrders: {mathchedOrders}\n\n")
+        # print(f"\n=====\ntrade_transactions: {self.trade_transactions}\n\n")
+        #
+        # txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
+        # print('\n=====\nCommon Txs:\n',commonTxs, '\n')
 
-        print(f"\n=====\nmathchedOrders: {mathchedOrders}\n\n")
-        print(f"\n=====\ntrade_transactions: {self.trade_transactions}\n\n")
-
-        txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
-        print('\n=====\nCommon Txs:\n',commonTxs, '\n')
+        commonTxs, toRemove = matchOrders(self.trade_transactions)
 
         # Include tarde txs to common transaction pool
         for tx in commonTxs:
             self.current_transactions.append(tx)
 
-        print('\n=====\n current_transactions:\n',self.current_transactions, '\n')
-
         # Remove zero getVol transactions from tradeTxs pool
-        txDirKeys = list(txDir.keys())
-        toRemove = []
+        removeDicts = [order for order in self.trade_transactions if order['tradeTxId'] in toRemove]
+        for order in removeDicts:
+            self.trade_transactions.remove(order)
+        # print('\n=====\n current_transactions:\n',self.current_transactions, '\n')
 
-        for key in txDirKeys:
-            toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0 or order['getVol']<0.000099]
-            if len(toRemoveTemp) > 0:
-                for j in range(len(toRemoveTemp)):
-                    toRemove.append(toRemoveTemp[j])
-
-        for removeOrder in toRemove:
-            self.trade_transactions.remove(removeOrder)
+        # # Remove zero getVol transactions from tradeTxs pool
+        # txDirKeys = list(txDir.keys())
+        # toRemove = []
+        #
+        # for key in txDirKeys:
+        #     toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0 or order['getVol']<0.000099]
+        #     if len(toRemoveTemp) > 0:
+        #         for j in range(len(toRemoveTemp)):
+        #             toRemove.append(toRemoveTemp[j])
+        #
+        # for removeOrder in toRemove:
+        #     self.trade_transactions.remove(removeOrder)
 
 
 

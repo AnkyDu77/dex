@@ -8,7 +8,8 @@
 
         :root {
             --base-font-size: 14px;
-            --base-height: 40px;
+            --base-height: 35px;
+            /*--base-heightx;*/
             --primary-color: #4C5C97;
             --secondary-color: #BAC8FE; //animations
         }
@@ -242,7 +243,7 @@
         }
 
         #current-cryptocurrency-pair {
-            margin: 0 0 30px 0;
+            margin: 0 0 20px 0;
             width: 80%;
             text-align: center;
             line-height: 38px;
@@ -260,7 +261,7 @@
             height: var(--base-height);
             border: 1.5px solid transparent;
             border-radius: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             background: #FFFFFF;
         }
 
@@ -269,10 +270,10 @@
         }
 
         #search-icon {
-            font-size: 20px;
+            font-size: 18px;
             padding: 0 10px;
             color: var(--primary-color);
-            line-height: 40px;
+            line-height: var(--base-height);
             vertical-align: middle;
         }
 
@@ -293,7 +294,7 @@
             list-style-type: none;
             padding: 0;
             margin: 0;
-            height: 10em;
+            height: 12.5em;
             overflow: auto;
         }
 
@@ -339,7 +340,8 @@
             height: var(--base-height);
             background-color: rgba(255, 255, 255, 0.2);
             border-radius: 30px;
-            margin-bottom: 30px;
+            margin-top: 20px;
+            margin-bottom: 20px;
         }
 
         .toggle-button input {
@@ -412,7 +414,7 @@
             flex-direction: row;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             padding: 0 20px;
             font-family: "Open Sans";
             height: var(--base-height);
@@ -448,7 +450,17 @@
             border: none;
         }
 
-        .input:focus {
+        #recipient-input {
+            width: 65%;
+            font-family: "Open Sans";
+            font-size: var(--base-font-size);
+            height: fit-content;
+            text-align: right;
+            color: var(--primary-color);
+            border: none;
+        }
+
+        .input:focus, #recipient-input:focus {
             outline: none;
         }
 
@@ -475,24 +487,24 @@
             border-bottom: 2px solid #FFFFFF;
             width: 80%;
             align-self: center;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
             opacity: 50%;
         }
 
-        #btn-wrapper {
+        .btn-wrapper {
             display: flex;
             flex-direction: column;
             justify-content: flex-start;
             position: static;
             align-self: stretch;
+            margin-top: 10px;
 
             flex: none;
             order: 2;
             flex-grow: 0;
-            margin-top: 20px;
         }
 
-        #btn {
+        .btn {
             position: static;
             height: var(--base-height);
             border:  none;
@@ -507,21 +519,21 @@
             transition: background .3s;
         }
 
-        #btn:hover {
+        .btn:hover {
             background: var(--secondary-color);
             transition: background .3s;
         }
 
-        #btn-text {
+        .btn-text {
             margin: 0px;
             position: static;
             font-family: Open Sans;
             font-size: var(--base-font-size);
-            line-height: 20px;
+            line-height: var(--base-font-size);
             color: #FFFFFF;
         }
 
-        #loader {
+        #loader, #loader-2 {
             margin-left: auto;
             margin-right: auto;
             display: none;
@@ -619,14 +631,14 @@
             text-decoration: none;
         }
 
-        #btn-text2 {
+        .btn-text2 {
             font-family: Open Sans;
             font-size: var(--base-font-size);
             line-height: 20px;
             color: #FFFFFF;
         }
 
-        #auth-error {
+        .auth-error {
             display: none;
             position: static;
             height: var(--base-height);
@@ -659,19 +671,19 @@
         }
 
         #tabs-buttons {
-            width: 30%;
+            width: 40%;
             display: flex;
             flex-direction: row;
             justify-content: space-between;
         }
 
-        #orders-history-btn, #open-orders-btn {
+        #orders-history-btn, #open-orders-btn, #limit-order-btn, #send-zsh-btn {
             transition: border-bottom-color 0.3s;
             border-bottom: 2px solid;
             border-bottom-color: transparent;
         }
 
-        .tab-links {
+        .tab-links, .tab-links-order-wrapper {
             line-height: var(--base-height);
             font-size: var(--base-font-size);
             font-family: "Open Sans";
@@ -681,7 +693,7 @@
             cursor: pointer;
         }
 
-        .tab-content {
+        .tab-content, .tab-content-order-wrapper {
             display: none;
         }
 
@@ -771,6 +783,39 @@
             text-align: center;
         }
 
+        #tabs-order-buttons {
+            width: 100%;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+        }
+
+        #limit-order-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        #send-zsh-wrapper-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+        }
+
+        #recipient-input-wrapper {
+            margin-top: 20px;
+        }
+
+        #commission-info {
+            font-family: "Open Sans";
+            line-height: var(--base-font-size);
+            font-size: var(--base-font-size);
+            color: #FFFFFF;
+            opacity: 0.9;
+            text-align: right;
+            margin-bottom: 20px;
+        }
+
 </style>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
           rel="stylesheet">
@@ -828,38 +873,75 @@
                     </ul>
                 </div>
                 <div id="wrapper">
-                <span class="toggle-button buy-btn">
-                    <input type="checkbox" name="" id="switch">
-                    <label for="switch"></label>
-                </span>
-                    <!--    <div id="available-amount">Доступно 0 USDT</div>-->
-                    <div class="field-wrapper" id="price-input-wrapper">
-                        <div class="field-name">Цена</div>
-                        <input type="number" name="input" class="input" id="price-input" placeholder="0">
-                        <div class="cryptocurrency-name" id="second-cryptocurrency">USDT</div>
-                    </div>
-                    <div class="field-wrapper" id="amount-input-wrapper">
-                        <div class="field-name">Количество</div>
-                        <input type="number" name="input" class ="input" id="amount-input" placeholder="0">
-                        <div class="cryptocurrency-name" id="first-cryptocurrency">ZSH</div>
-                    </div>
-                    <div id="horizontal-line"></div>
-                    <div id="total-and-btn-wrapper">
-                        <div class="field-wrapper" id="total-price-field">
-                            <div class="field-name">Всего</div>
-                            <div id="total-price"></div>
-                            <div class="cryptocurrency-name" id="total-cryptocurrency">USDT</div>
+                    <div id="tabs-order-wrapper">
+                        <div id="tabs-order-buttons">
+                            <button class="tab-links-order-wrapper" id="limit-order-btn" onclick="openTabOrderWrapper(event, 'limit-order-tab')">Лимитный ордер</button>
+                            <button class="tab-links-order-wrapper" id="send-zsh-btn" onclick="openTabOrderWrapper(event, 'send-zsh-wrapper')">Отправить ZSH</button>
                         </div>
-                        <div id="btn-wrapper">
-                            <button id="btn">
-                                <div id="loader"></div>
-                                <div id="btn-text">Купить ZSH</div>
-                            </button>
-                            <div id="auth-error">
-                                <div>
-                                    <a href="login.html" class="link">Войдите</a>
-                                    <span id="btn-text2"> или </span>
-                                    <a href="sign_up.html" class="link">Зарегистрируйтесь</a>
+                        <div id="limit-order-tab" class="tab-content-order-wrapper">
+                            <div id="limit-order-wrapper">
+                                <span class="toggle-button buy-btn">
+                                    <input type="checkbox" name="" id="switch">
+                                    <label for="switch"></label>
+                                </span>
+                                <!--    <div id="available-amount">Доступно 0 USDT</div>-->
+                                <div class="field-wrapper" id="price-input-wrapper">
+                                    <div class="field-name">Цена</div>
+                                    <input type="text" name="input" class="input" id="price-input" placeholder="0">
+                                    <div class="cryptocurrency-name" id="second-cryptocurrency">USDT</div>
+                                </div>
+                                <div class="field-wrapper" id="amount-input-wrapper">
+                                    <div class="field-name">Количество</div>
+                                    <input type="text" name="input" class ="input" id="amount-input" placeholder="0">
+                                    <div class="cryptocurrency-name" id="first-cryptocurrency">ZSH</div>
+                                </div>
+                                <div id="horizontal-line"></div>
+                                <div id="total-and-btn-wrapper">
+                                    <div class="field-wrapper" id="total-price-field">
+                                        <div class="field-name">Всего</div>
+                                        <div id="total-price"></div>
+                                        <div class="cryptocurrency-name" id="total-cryptocurrency">USDT</div>
+                                    </div>
+                                    <div class="btn-wrapper">
+                                        <button class="btn" id="btn">
+                                            <div class="loader" id="loader"></div>
+                                            <div class="btn-text" id="btn-text">Купить ZSH</div>
+                                        </button>
+                                        <div class="auth-error" id="auth-error">
+                                            <div>
+                                                <a href="login.html" class="link">Войдите</a>
+                                                <span class="btn-text2" id="btn-text2"> или </span>
+                                                <a href="sign_up.html" class="link">Зарегистрируйтесь</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="tab-content-order-wrapper" id="send-zsh-wrapper">
+                            <div id="send-zsh-wrapper-content">
+                                <div class="field-wrapper" id="recipient-input-wrapper">
+                                    <div class="field-name">Получатель</div>
+                                    <input type="text" name="input" id="recipient-input" placeholder="Введите адрес получателя">
+                                </div>
+                                <div class="field-wrapper" id="zsh-amount-input-wrapper">
+                                    <div class="field-name">Сумма</div>
+                                    <input type="number" name="input" class ="input" id="zsh-amount-input" placeholder="0">
+                                    <div class="cryptocurrency-name">ZSH</div>
+                                </div>
+                                <div id="commission-info">Комиссия (0,01%): 0 ZSH</div>
+                                <div class="btn-wrapper">
+                                    <button class="btn" id="send-btn">
+                                        <div class="loader" id="loader-2"></div>
+                                        <div class="btn-text" id="send-btn-text">Отправить ZSH</div>
+                                    </button>
+                                    <div class="auth-error" id="auth-error-second-tab">
+                                        <div>
+                                            <a href="login.html" class="link">Войдите</a>
+                                            <span class="btn-text2"> или </span>
+                                            <a href="sign_up.html" class="link">Зарегистрируйтесь</a>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -976,6 +1058,37 @@
         }
 
         // Show the current tab, and add an "active" class to the button that opened the tab
+        document.getElementById(tabName).style.display = "block";
+        evt.currentTarget.className += " active";
+    }
+
+    const openTabOrderWrapper = (evt, tabName) => {
+        const $limitOrderBtn = document.getElementById('limit-order-btn');
+        const $sendZshBtn = document.getElementById('send-zsh-btn');
+
+        if (tabName === 'limit-order-tab') {
+            $limitOrderBtn.style.borderBottomColor = '#FFFFFF';
+            $sendZshBtn.style.borderBottomColor = 'transparent';
+        }
+        else {
+            $limitOrderBtn.style.borderBottomColor = 'transparent';
+            $sendZshBtn.style.borderBottomColor = '#FFFFFF';
+        }
+
+        let i,
+            tabcontent,
+            tablinks;
+
+        tabcontent = document.getElementsByClassName("tab-content-order-wrapper");
+        for (i = 0; i < tabcontent.length; i++) {
+            tabcontent[i].style.display = "none";
+        }
+
+        tablinks = document.getElementsByClassName("tab-links-order-wrapper");
+        for (i = 0; i < tablinks.length; i++) {
+            tablinks[i].className = tablinks[i].className.replace(" active", "");
+        }
+
         document.getElementById(tabName).style.display = "block";
         evt.currentTarget.className += " active";
     }

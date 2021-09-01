@@ -10,6 +10,7 @@ from config import Config
 def verifyTxSignature(address, pubKey, msg, signature):
 
     pubKeyFromAddress = address.split(Config().IDSTR)[1]
+
     if hashlib.sha3_224(pubKey).hexdigest() == pubKeyFromAddress:
 
         msg = msg.encode('utf-8')

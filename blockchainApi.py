@@ -375,6 +375,7 @@ def loginUser():
 
         blockchain.prkey = prKey
         blockchain.pubKey = pubKey
+        print(f'\n====\nLogin Public Key: {blockchain.pubKey}\n\n')
         return jsonify({'MSG': True, 'ADDRESS': address}), 200
 
 

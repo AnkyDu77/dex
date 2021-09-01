@@ -18,6 +18,7 @@ $(function () {
     const $asksTable = document.getElementById('asks-table');
     const $bidsTable = document.getElementById('bids-table');
     const $loader = document.getElementById('loader');
+    const $loader2 = document.getElementById('loader-2');
     const $authError = document.getElementById('auth-error');
     const $loginBtn = document.getElementById('login-btn');
     const $signUpBtn = document.getElementById('signup-btn');
@@ -32,8 +33,14 @@ $(function () {
     const $copyIcon = document.getElementById('copy-icon');
     const $copyMessage = document.getElementById('copy-message-with-triangle');
     const $accountWrapper = document.getElementById('account-wrapper');
+    const $sendBtn = document.getElementById('send-btn');
+    const $authErrorSecondTab = document.getElementById('auth-error-second-tab');
+    const $sendBtnText = document.getElementById('send-btn-text');
+    const $recipientInput = document.getElementById('recipient-input');
+    const $zshAmountInput = document.getElementById('zsh-amount-input');
 
-    const API_URL = 'http://0.0.0.0:5000'; //Alina http://178.176.120.241:5002
+    // const API_URL = 'http://0.0.0.0:5000';
+    const API_URL = 'http://0.0.0.0:5000'; // Alina http://178.176.120.241:5002
     //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
     const TRADE_DIRECTIONS = {SELL: 'SELL', BUY: 'BUY'};
     let tradeDirection = TRADE_DIRECTIONS.BUY;
@@ -74,6 +81,23 @@ $(function () {
         // setChartData();
     }
 
+    const setBalance = async () => {
+        balances = [];
+        $tokensListElement.innerText = '';
+        try {
+            let address = localStorage.getItem('walletAddress');
+            let result = await postData(`${API_URL}/wallet/getBalance`, {address});
+            balances =  (await result.json())['BALACNES'];
+            balances.forEach(item => {
+                listItem = document.createElement('li');
+                listItem.innerHTML = `${Math.round(parseFloat(item.balance) * 10**(decimals)) / 10**(decimals)} ${item.token}`;
+                $tokensListElement.appendChild(listItem);
+            })
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
     window.addEventListener("load", async function (event) {
         makeList();
         createTable($asksTable);
@@ -90,6 +114,7 @@ $(function () {
             $accButtons.style.display = "flex";
         }
         document.getElementById("open-orders-btn").click();
+        document.getElementById("limit-order-btn").click();
     }, false);
 
     window.addEventListener("mousedown", async function (event) {
@@ -101,7 +126,6 @@ $(function () {
     })
 
     $switchButton.onclick = () => {
-        returnOldButton();
         if ($('#switch').prop('checked')) {
             $btnText.innerText = `Продать ${firstCryptocurrency}`;
             tradeDirection = TRADE_DIRECTIONS.SELL;
@@ -113,22 +137,60 @@ $(function () {
 
     const decimals = 6;
 
-    $priceInput.oninput = () => {
-        returnOldButton();
-        let price = Number($priceInput.value);
-        $priceInput.value = Math.round((price) * 1000000) / 1000000;
-        let amount = Number($amountInput.value);
-        if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
-            10 ** (decimals)).toString().replace('.', ',');
+    // $priceInput.oninput = () => {
+    //     // returnOldButton();
+    //     // let price = Number($priceInput.value);
+    //     // $priceInput.value = Math.round((price) * 1000000) / 1000000;
+    //     // let amount = Number($amountInput.value);
+    //     // if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
+    //     //     10 ** (decimals)).toString().replace('.', ',');
+    // }
+
+    $priceInput.oninput = () => numericInputHandler($priceInput, $amountInput, $totalPrice, decimals);
+
+    $amountInput.oninput = () => numericInputHandler($amountInput, $priceInput, $totalPrice, decimals);
+
+    // $amountInput.oninput = () => {
+    //     // returnOldButton();
+    //     let amount = Number($amountInput.value);
+    //     $amountInput.value = Math.round(amount * 10 ** (decimals)) / 10 ** (decimals);
+    //     let price = Number($priceInput.value);
+    //     if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
+    //         10 ** (decimals)).toString().replace('.', ',');
+    //
+    //
+    // }
+
+    const numericInputHandler = (firstInputObject, secondInputObject = null, totalObject = null,decimals = 6) => {
+        let { error, value } = processNumericValue(firstInputObject.value, decimals);
+        firstInputObject.value = value.toString().replace('.', ',');
+        if (secondInputObject !== null && totalObject !== null) {
+            if (error === false) {
+                let firstValue = value;
+                let secondValue = Number(secondInputObject.value.replace(',', '.'));
+                if (firstValue >= 0 && secondValue >= 0) totalObject.innerText = (Math.round((firstValue * secondValue) * 10 ** (decimals)) /
+                    10 ** (decimals)).toString().replace('.', ',');
+            }
+        }
+
     }
 
-    $amountInput.oninput = () => {
-        returnOldButton();
-        let amount = Number($amountInput.value);
-        $amountInput.value = Math.round(amount * 10 ** (decimals)) / 10 ** (decimals);
-        let price = Number($priceInput.value);
-        if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
-            10 ** (decimals)).toString().replace('.', ',');
+    const processNumericValue = (value, decimals) => {
+        value = value.replace(/,/g, '.');
+        let valueArray = value.split('.');
+        if (/[^.,\d]/g.test(value))
+            return { error: true, value: value.slice(0, value.length - 1 ) };
+        if (valueArray.length > 2)
+            return { error: true, value: value.slice(0, value.length - 1 ) };
+        if (valueArray[1] && valueArray[1].length > decimals)
+            return { error: false, value: value.slice(0, value.length - 1 ) };
+        return{ error: false, value };
+    }
+
+    $zshAmountInput.oninput = () => {
+        const $commissionInfo = document.getElementById('commission-info');
+        let commission = Math.round((Number($zshAmountInput.value) * 0.0001)*10**6)/10**6;
+        $commissionInfo.innerText = `Комиссия (0,01%): ${commission} ZSH`;
     }
 
     const makeList = () => {
@@ -461,16 +523,18 @@ $(function () {
     let refreshOrderBook = setInterval(orderBook, 5000);
 
     $btn.onclick = async () => {
-        const price = parseFloat($priceInput.value);
-        const amountCalc = parseFloat($amountInput.value);
+        const price = parseFloat($priceInput.value.replace(',','.'));
+        const amountCalc = parseFloat($amountInput.value.replace(',','.'));
         const amount = tradeDirection === TRADE_DIRECTIONS.SELL ? amountCalc : amountCalc * price;
 
         if (price === 0 || isNaN(price)) {
-            setMessageToButton("Введите цену", $error);
+            setMessageToButton("Введите цену", $error, $btn, $btnText);
+            setTimeout(returnOldButton, 2000);
             return;
         }
-        if (amount === 0 || isNaN(amount)) {
-            setMessageToButton("Введите количество", $error);
+        if (amount === 0 || isNaN(amountCalc)) {
+            setMessageToButton("Введите количество", $error, $btn, $btnText);
+            setTimeout(returnOldButton, 2000);
             return;
         }
 
@@ -478,10 +542,19 @@ $(function () {
         const symbolsArray = currentSymbols.split('/');
         const symbolToSend = tradeDirection === TRADE_DIRECTIONS.BUY ? symbolsArray[1] : symbolsArray[0]
         const symbolToGet = tradeDirection === TRADE_DIRECTIONS.BUY ? symbolsArray[0] : symbolsArray[1]
+
+        // if (balances === [])
+        // {
+        //     setMessageToButton('Ошибка. Не удалось загрузить данные о балансе. Пожалуйста, повторите попытку позже.')
+        //     return;
+        // }
+
         let tokenBalance = balances.filter(item => item.token === symbolToSend.toUpperCase())[0];
+        console.log(tokenBalance);
 
         if (tokenBalance !== undefined && amount > tokenBalance.balance) {
-            setMessageToButton("Недостаточно средств", $error);
+            setMessageToButton("Недостаточно средств", $error, $btn, $btnText);
+            setTimeout(returnOldButton, 2000);
             return;
         }
 
@@ -492,7 +565,7 @@ $(function () {
             showAuthError();
             return;
         }
-        tx = {
+        let tx = {
             'type': 'trade',
             'sender': walletAddress,
             'symbol': currentSymbols,
@@ -501,7 +574,7 @@ $(function () {
             'sendVol': amount,
             'get': symbolToGet,
             'getVol': tradeDirection === TRADE_DIRECTIONS.BUY ? amount / price : price * amount,
-            'comissionAmount': 2
+            'comissionAmount': 2,
         }
         try {
             showLoader();
@@ -510,25 +583,26 @@ $(function () {
             let data = await result.json();
             if (data.MSG) {
                 if (data.MSG.includes("Tx pool synced among")) {
-                    setMessageToButton("Заявка отправлена", $success);
+                    setMessageToButton("Заявка отправлена", $success, $btn, $btnText);
                     $priceInput.value = NaN;
                     $amountInput.value = NaN;
                     $totalPrice.innerText = '';
-                    setBalance();
+                    await setBalance();
                 } else if (data.MSG.includes("Try to sign in first"))
                     showAuthError();
                 else if (data.MSG.includes("Spend amount exceeds account balance"))
-                    setMessageToButton("Недостаточно средств", $error);
+                    setMessageToButton("Недостаточно средств", $error, $btn, $btnText);
                 else {
-                    setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+                    setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
                 }
             } else {
-                setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+                setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
             }
         } catch (e) {
             hideLoader();
-            setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+            setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
         }
+        setTimeout(returnOldButton, 2000);
     }
 
     const postData = async (url = '', data = {}) => {
@@ -536,40 +610,52 @@ $(function () {
             method: 'POST',
             body: JSON.stringify(data)
         });
-        return await response;
+        return response;
     }
 
     const showLoader = () => {
         $btnText.style.display = "none";
+        $sendBtnText.style.display = "none";
         $btn.style.pointerEvents = "none";
+        $sendBtn.style.pointerEvents = "none";
         $loader.style.display = "block";
+        $loader2.style.display = "block";
     }
 
     const hideLoader = () => {
         $btn.style.background = $primaryColor;
+        $sendBtn.style.background = $primaryColor;
         $loader.style.display = "none";
+        $loader2.style.display = "none";
         $btnText.style.display = "block";
+        $sendBtnText.style.display = "block";
     }
 
-    const setMessageToButton = (message, backgroundColor = $primaryColor) => {
-        $btn.style.background = backgroundColor;
-        $btn.style.pointerEvents = "none";
-        $btnText.innerText = message;
+    const setMessageToButton = (message, backgroundColor = $primaryColor, button, buttonText) => {
+        button.style.background = backgroundColor;
+        button.style.pointerEvents = "none";
+        buttonText.innerText = message;
     }
 
     const showAuthError = () => {
         $totalPriceField.style.display = "none";
-        $totalAndBtnWrapper.style.height = "100px";
+        $totalAndBtnWrapper.style.height = "80px";
         $totalAndBtnWrapper.style.justifyContent = "center";
         $btn.style.pointerEvents = "none";
+        $sendBtn.style.pointerEvents = "none"
         $btn.style.display = "none";
+        $sendBtn.style.display = "none";
         $authError.style.display = "flex";
+        $authErrorSecondTab.style.display = "flex";
     }
 
     const returnOldButton = () => {
         $btn.style.pointerEvents = "auto";
         $btn.style.removeProperty("background");
+        $sendBtn.style.pointerEvents = "auto";
+        $sendBtn.style.removeProperty("background");
         $btnText.innerText = tradeDirection === TRADE_DIRECTIONS.SELL ? `Продать ${firstCryptocurrency}` : `Купить ${firstCryptocurrency}`;
+        $sendBtnText.innerText = 'Отправить ZSH';
     }
 
     $exitBtn.onclick = () => {
@@ -583,23 +669,6 @@ $(function () {
         let walletAddress = localStorage.getItem('walletAddress');
         let addressLength = walletAddress.length;
         return `${walletAddress.slice(0, 4)}...${walletAddress.slice(addressLength - 4, addressLength)}`
-    }
-
-    const setBalance = async () => {
-        balances = [];
-        $tokensListElement.innerText = '';
-        try {
-            let address = localStorage.getItem('walletAddress');
-            let result = await postData(`${API_URL}/wallet/getBalance`, {address});
-            balances =  (await result.json())['BALACNES'];
-            balances.forEach(item => {
-                listItem = document.createElement('li');
-                listItem.innerHTML = `${Math.round(parseFloat(item.balance) * 10**(decimals)) / 10**(decimals)} ${item.token}`;
-                $tokensListElement.appendChild(listItem);
-            })
-        } catch (e) {
-            console.log(e)
-        }
     }
 
     $copyIcon.onclick = async () => {
@@ -616,5 +685,81 @@ $(function () {
         if ($accountWrapper.style.opacity === "" || $accountWrapper.style.opacity === "0")
             $accountWrapper.style.opacity = "1.0";
         else $accountWrapper.style.opacity = "0";
+    }
+
+    $sendBtn.onclick = async () => {
+        const recipient = $recipientInput.value;
+        const amount = parseFloat($zshAmountInput.value);
+
+        if (recipient.length === 0) {
+            setMessageToButton("Укажите получателя", $error, $sendBtn, $sendBtnText);
+            setTimeout(returnOldButton, 2000);
+            return;
+        }
+        if (amount === 0 || isNaN(amount)) {
+            setMessageToButton("Введите количество", $error, $sendBtn, $sendBtnText);
+            setTimeout(returnOldButton, 2000);
+            return;
+        }
+
+        // if (balances === [])
+        // {
+        //     setMessageToButton('Ошибка. Не удалось загрузить данные о балансе. Пожалуйста, повторите попытку позже.')
+        //     return;
+        // }
+
+        let tokenBalance = balances.filter(item => item.token === 'ZSH')[0];
+
+        if (tokenBalance !== undefined && amount > tokenBalance.balance) {
+            setMessageToButton("Недостаточно средств", $error, $sendBtn, $sendBtnText);
+            setTimeout(returnOldButton, 2000);
+            return;
+        }
+
+        let walletAddress = localStorage.getItem('walletAddress');
+        if (walletAddress === null) {
+            $accButtons.style.display = "none";
+            $authButtons.style.display = "flex";
+            showAuthError();
+            return;
+        }
+
+
+        let tx = {
+            'type': 'common',
+            'symbol': 'zsh',
+            'contract': null,
+            'sender': walletAddress,
+            'recipient': $recipientInput.value,
+            'sendAmount': amount,
+            'comissionAmount': 2,
+        }
+        try {
+            showLoader();
+            let result = await postData(`${API_URL}/transactions/new`, tx);
+            hideLoader();
+            let data = await result.json();
+            console.log(data);
+            if (data.MSG) {
+                if (data.MSG.includes("Tx pool synced among")) {
+                    setMessageToButton("Заявка отправлена", $success, $sendBtn, $sendBtnText);
+                    $recipientInput.value = '';
+                    $zshAmountInput.value = NaN;
+                    await setBalance();
+                } else if (data.MSG.includes("Try to sign in first"))
+                    showAuthError();
+                else if (data.MSG.includes("Spend amount exceeds account balance"))
+                    setMessageToButton("Недостаточно средств", $error, $sendBtn, $sendBtnText);
+                else {
+                    setMessageToButton("Ошибка на сервере 1. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+                }
+            } else {
+                setMessageToButton("Ошибка на сервере 2. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+            }
+        } catch (e) {
+            hideLoader();
+            setMessageToButton("Ошибка на сервере 3. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+        }
+        setTimeout(returnOldButton, 2000);
     }
 })
