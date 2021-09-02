@@ -281,7 +281,7 @@
                 let result = await postData(API_URL + "/wallet/login", {password});
                 hideLoader();
                 if (result.status === 500)
-                    setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+                    setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
                 else {
                     result = await result.json()
                     if (result.MSG !== true && result.MSG.includes("Wrong password"))
@@ -294,7 +294,7 @@
                 }
             } catch (e) {
                 hideLoader();
-                setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error);
+                setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
             }
 
 
@@ -338,7 +338,7 @@
                 cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
                 body: JSON.stringify(data) // body data type must match "Content-Type" header
             });
-            return await response; // parses JSON response into native JavaScript objects
+            return response; // parses JSON response into native JavaScript objects
         }
     })
 </script>

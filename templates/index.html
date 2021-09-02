@@ -697,80 +697,96 @@
             display: none;
         }
 
-        #open-orders-table, #orders-history-table {
+        .open-orders-table, .orders-history-table {
             margin-top: 20px;
             border-collapse: collapse;
             font-family: "Open Sans";
             font-size: 12px;
             color: #FFFFFF;
+            width: 100%;
+            table-layout: fixed;
         }
 
-        #open-orders-table tr td{
+        .open-orders-table tr td{
             text-align: center;
             padding: 10px 0;
         }
 
-        #open-orders-table th {
+        .open-orders-table th {
             font-weight: normal;
         }
 
-        #open-orders-table tr td:nth-last-child(-n+1){
+        .open-orders-table tr td:nth-last-child(-n+1){
             text-align: right;
             padding-right: 20px;
         }
 
-        #open-orders-table tr td:nth-child(1) {
+        .open-orders-table tr td:nth-child(1) {
             text-align: left;
             padding-left: 20px;
         }
 
-        #open-orders-table th:nth-last-child(-n+1){
+        .open-orders-table th:nth-last-child(-n+1){
             text-align: right;
             padding-right: 20px;
         }
 
-        #open-orders-table th:nth-child(1) {
+        .open-orders-table th:nth-child(1) {
             text-align: left;
             padding-left: 20px;
         }
 
-        #open-orders-table thead tr{
+        .open-orders-table thead tr{
             line-height: var(--base-height);
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
         }
 
-        #orders-history-table tr td{
+        .orders-history-table tr td{
             text-align: center;
             padding: 10px 0;
         }
 
-        #orders-history-table th {
+        .orders-history-table th {
             font-weight: normal;
         }
 
-        #orders-history-table tr td:nth-last-child(-n+1){
+        .orders-history-table tr td:nth-last-child(-n+1){
             float: right;
             padding-right: 10px;
         }
 
-        #orders-history-table tr td:nth-child(1) {
+        .orders-history-table tr td:nth-child(1) {
             text-align: left;
             padding-left: 20px;
         }
 
-        #orders-history-table th:nth-last-child(-n+1){
+        .orders-history-table th:nth-last-child(-n+1){
             text-align: right;
             padding-right: 20px;
         }
 
-        #orders-history-table th:nth-child(1) {
+        .orders-history-table th:nth-child(1) {
             text-align: left;
             padding-left: 20px;
         }
 
-        #orders-history-table thead tr{
+        .orders-history-table thead tr{
             line-height: var(--base-height);
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tables-content {
+            display: none;
+            height: 260px;
+            overflow: auto;
+        }
+
+        .tables-content::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .tables-content::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, .5);
         }
 
         .tables-info {
@@ -926,7 +942,7 @@
                                 </div>
                                 <div class="field-wrapper" id="zsh-amount-input-wrapper">
                                     <div class="field-name">Сумма</div>
-                                    <input type="number" name="input" class ="input" id="zsh-amount-input" placeholder="0">
+                                    <input type="text" name="input" class ="input" id="zsh-amount-input" placeholder="0">
                                     <div class="cryptocurrency-name">ZSH</div>
                                 </div>
                                 <div id="commission-info">Комиссия (0,01%): 0 ZSH</div>
@@ -985,7 +1001,7 @@
                 <button class="tab-links" id="orders-history-btn" onclick="openTab(event, 'orders-history')">История сделок</button>
             </div>
             <div id="open-orders" class="tab-content">
-                <table  id="open-orders-table" class="table">
+                <table  class="open-orders-table">
                     <thead>
                     <tr>
                         <th scope="col">Дата</th>
@@ -996,14 +1012,18 @@
                         <th scope="col">Количество</th>
                     </tr>
                     </thead>
-                    <tbody id="open-orders-table-body">
-                    </tbody>
                 </table>
+                <div class="tables-content" id="open-orders-content">
+                    <table class="open-orders-table" style="margin-top: 0">
+                        <tbody id="open-orders-table-body">
+                        </tbody>
+                    </table>
+                </div>
                 <div class="tables-info" id="open-orders-info">У вас пока нет открытых сделок</div>
             </div>
 
             <div id="orders-history" class="tab-content">
-                <table  id="orders-history-table" class="table">
+                <table  class="orders-history-table">
                     <thead>
                     <tr>
                         <th scope="col">Дата</th>
@@ -1014,9 +1034,13 @@
                         <th scope="col">Статус</th>
                     </tr>
                     </thead>
-                    <tbody id="orders-history-table-body">
-                    </tbody>
                 </table>
+                <div class="tables-content" id="orders-history-content">
+                    <table class="orders-history-table" style="margin-top: 0">
+                        <tbody id="orders-history-table-body">
+                        </tbody>
+                    </table>
+                </div>
                 <div class="tables-info" id="orders-history-info">У вас пока нет выполненных сделок</div>
             </div>
         </div>

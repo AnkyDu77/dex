@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import uuid
 import hashlib
 import requests
 import json
@@ -20,6 +21,7 @@ class Pool(object):
     def __init__(self):
         self.name = None
         self.symbol = None
+        self.poolAddress = Config().IDSTR+hashlib.sha3_224(uuid.uuid4().hex.encode()).hexdigest()
         self.poolBalance = None
         self.accountsBalance = {}
         self.blockHash = None
@@ -61,7 +63,6 @@ class Account(object):
 class Blockchain(object):
     def __init__(self):
         self.cnfg = Config()
-
         self.chain=[]
         self.accounts=[]
         self.pools = []
@@ -144,6 +145,8 @@ class Blockchain(object):
         pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
         if pool.accountsBalance[address] - sendAmount >= 0:
             pool.accountsBalance[address] -= sendAmount
+            # Send aendAmount to pool balance
+            pool.poolBalance += sendAmount
             pool.blockHash = self.hash(self.chain[-1])
             pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
                                                 json.dumps(pool.accountsBalance)+\
@@ -205,7 +208,6 @@ class Blockchain(object):
                 return self.lastBlock['index']+1, syncStatus
 
             # Check sigitures
-            print(f'\n======\nself.pubKey: {self.pubKey}\n\n')
             verifStatus = verifyTxSignature(sender, self.pubKey, str(simpleTx), txsig)
             if verifStatus == True:
                 self.current_transactions.append(simpleTx)
@@ -269,7 +271,9 @@ class Blockchain(object):
         # txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
         # print('\n=====\nCommon Txs:\n',commonTxs, '\n')
 
-        commonTxs, toRemove = matchOrders(self.trade_transactions)
+
+
+        commonTxs, toRemove = matchOrders(self.trade_transactions, self.pools)
 
         # Include tarde txs to common transaction pool
         for tx in commonTxs:

@@ -388,9 +388,21 @@ def logoutUser():
 
 @app.route('/wallet/getBalance', methods=['POST'])
 def gBalance():
+    respondList = []
     address = json.loads(request.data)['address']
-    balance = blockchain.getBalance(address)
-    return jsonify({'BALACNES': [{'token': 'ZSH', 'balance':balance}]}), 200
+    nativeTokenName = Config().NATIVE_TOKEN_NAME.upper()
+    nativeBalance = blockchain.getBalance(address)
+    nativeBalanceDict = {'token': nativeTokenName, 'balance': nativeBalance}
+    respondList.append(nativeBalanceDict)
+
+    # Get pools balances for user adddress
+    for pool in blockchain.pools:
+        poolSymbol = pool.symbol
+        userBalance = pool.accountsBalance[address]
+        balanceDict = {'token': poolSymbol, 'balance': userBalance}
+        respondList.append(balanceDict)
+
+    return jsonify({'BALACNES': respondList}), 200
 
 
 @app.route('/pools/createPool', methods=['POST'])

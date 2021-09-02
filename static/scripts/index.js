@@ -103,7 +103,7 @@ $(function () {
         createTable($asksTable);
         createTable($bidsTable);
         setCryptocurrency(defaultCryptocurrencyPair);
-        // setChartData();
+        setChartData();
         let walletAddress = localStorage.getItem('walletAddress');
         if (walletAddress === null) {
             showAuthError();
@@ -137,31 +137,11 @@ $(function () {
 
     const decimals = 6;
 
-    // $priceInput.oninput = () => {
-    //     // returnOldButton();
-    //     // let price = Number($priceInput.value);
-    //     // $priceInput.value = Math.round((price) * 1000000) / 1000000;
-    //     // let amount = Number($amountInput.value);
-    //     // if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
-    //     //     10 ** (decimals)).toString().replace('.', ',');
-    // }
+    $priceInput.oninput = () => numericInputHandler($priceInput, decimals, $amountInput, $totalPrice );
 
-    $priceInput.oninput = () => numericInputHandler($priceInput, $amountInput, $totalPrice, decimals);
+    $amountInput.oninput = () => numericInputHandler($amountInput, decimals, $priceInput, $totalPrice );
 
-    $amountInput.oninput = () => numericInputHandler($amountInput, $priceInput, $totalPrice, decimals);
-
-    // $amountInput.oninput = () => {
-    //     // returnOldButton();
-    //     let amount = Number($amountInput.value);
-    //     $amountInput.value = Math.round(amount * 10 ** (decimals)) / 10 ** (decimals);
-    //     let price = Number($priceInput.value);
-    //     if (price > 0 && amount > 0) $totalPrice.innerText = (Math.round((price * amount) * 10 ** (decimals)) /
-    //         10 ** (decimals)).toString().replace('.', ',');
-    //
-    //
-    // }
-
-    const numericInputHandler = (firstInputObject, secondInputObject = null, totalObject = null,decimals = 6) => {
+    const numericInputHandler = (firstInputObject, decimals = 6, secondInputObject = null, totalObject = null) => {
         let { error, value } = processNumericValue(firstInputObject.value, decimals);
         firstInputObject.value = value.toString().replace('.', ',');
         if (secondInputObject !== null && totalObject !== null) {
@@ -189,8 +169,10 @@ $(function () {
 
     $zshAmountInput.oninput = () => {
         const $commissionInfo = document.getElementById('commission-info');
-        let commission = Math.round((Number($zshAmountInput.value) * 0.0001)*10**6)/10**6;
+        let commission = Math.round((parseFloat($zshAmountInput.value.replace(',','.')) * 0.0001)*10**6)/10**6;
         $commissionInfo.innerText = `Комиссия (0,01%): ${commission} ZSH`;
+
+        numericInputHandler($zshAmountInput, decimals);
     }
 
     const makeList = () => {
@@ -252,6 +234,17 @@ $(function () {
         }
     }
 
+    const getFormattedDate = (date) => {
+        return  setZeroAhead(date.getDate()) + '/' + setZeroAhead(date.getMonth() + 1) + '/' + setZeroAhead(date.getFullYear()) + ' '
+            + setZeroAhead(date.getHours()) + ':' + setZeroAhead(date.getMinutes())  + ':' + setZeroAhead(date.getSeconds());
+    }
+
+    const setZeroAhead = (value) => {
+        if (value < 10)
+            return `0${value}`;
+        else return value;
+    };
+
     const setDataToOpenOrdersTable = (data) => {
         let walletAddress = localStorage.getItem('walletAddress');
         let filteredData = data.tradeOrders.filter(order => {
@@ -260,8 +253,7 @@ $(function () {
         let parsedData = filteredData.map(element => {
             let direction = null;
             let date = new Date(element.timestamp*1000)
-            let formattedDate = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + ' '
-                + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+            let formattedDate = getFormattedDate(date);
             // first token && second token
             if (element.get === firstCryptocurrency.toLowerCase() && element.send === secondCryptocurrency.toLowerCase()) {
                 direction = 'BUY';
@@ -309,8 +301,7 @@ $(function () {
             let secondSymbol = pair.substring(pair.indexOf('/') + 1, pair.length);
             let direction = null;
             let date = new Date(element.timestamp*1000)
-            let formattedDate = date.getDate() + '/' + (date.getMonth() + 1) + '/' + date.getFullYear() + ' '
-                + date.getHours() + ':' + date.getMinutes() + ':' + date.getSeconds();
+            let formattedDate = getFormattedDate(date);
             if (element.contract === firstSymbol) {
                 direction = 'BUY';
             }
@@ -449,17 +440,105 @@ $(function () {
             .catch(err => console.log(err))
     }
 
-    // const setChartData = () => {
-    //     fetch('https://api.binance.com/api/v3/klines?symbol=' + $currentPairLabel.innerText.replace('/', '') + '&interval=15m&limit=1000')
-    //         .then(res => res.json())
-    //                 .then(data => {
-    //                     const cdata = data.map(d => {
-    //                         return {time:d[0]/1000,open:parseFloat(d[1]),high:parseFloat(d[2]),low:parseFloat(d[3]),close:parseFloat(d[4])}
-    //                     });
-    //                     candleSeries.setData(cdata);
-    //                 })
-    //                 .catch(err => console.log(err))
-    //     }
+    const setChartData = () => {
+        fetch(`${API_URL}/chain`)
+            .then(res => res.json())
+            .then(data => {
+                data.chain.shift();
+                setDataToOrdersHistoryTable(data);
+                const cdata = data.chain.map(block => {
+                    let filteredTransactions = block.transactions.filter(transaction => {
+                        return (transaction.tradeTxId !== null) && (transaction.contract === firstCryptocurrency.toLowerCase());
+                    })
+                    let prices = filteredTransactions.map(transaction => {
+                        return transaction.price;
+                    })
+                    let volume = filteredTransactions.map(transaction => {
+                        return transaction.sendAmount;
+                    })
+                    return {time: new Date(block.timestamp * 1000).getTime(), prices: prices, volume: volume}
+                })
+
+                let interval = 5; //minutes
+                let currentDate = new Date();
+                let intervalStart = new Date();
+
+                intervalStart.setMinutes(currentDate.getMinutes() - interval); // One day interval
+                let minutes = (Math.round(intervalStart.getMinutes()/interval) * interval) % 60;
+                intervalStart.setMinutes(minutes);
+                intervalStart.setSeconds(0);
+                intervalStart.setMilliseconds(0);
+
+                let filteredData = cdata.filter(element => {
+                    return element.time < intervalStart.getTime() && element.prices.length !== 0 && element.volume.length !== 0
+                })
+
+                let intervalEnd = new Date(intervalStart);
+                intervalStart.setMinutes(intervalStart.getMinutes() - interval);
+                let reversedFilteredData = filteredData.reverse();
+                let history = [[]];
+
+                let i = 0;
+                let j = 0;
+                history[i].push(new Date(intervalStart));
+                while (j < reversedFilteredData.length) {
+                    let item = reversedFilteredData[j];
+                    if (item.time >= intervalStart.getTime() && item.time < intervalEnd.getTime())
+                    {
+                        if (history[i].length === 0) {
+                            history[i].push(new Date(intervalStart));
+                        }
+                        history[i].push(item);
+                        j++;
+                    }
+                    else if (item.time < intervalStart.getTime()) {
+                        intervalEnd = new Date(intervalStart);
+                        intervalStart.setMinutes(intervalStart.getMinutes() - interval);
+                        history.push([]);
+                        i++;
+                        history[i].push(new Date(intervalStart));
+                    }
+                }
+
+                let candleSeriesHistoryData = [];
+                let volumeSeriesHistoryData = [];
+
+                history.forEach(item => {
+                    let timestamp = new Date(item[0]);
+                    if (item.length > 1) {
+                        item.shift()
+                        let open = item[0].prices[0];
+                        let lastTransaction = item[item.length - 1];
+                        let close = lastTransaction.prices[lastTransaction.prices.length - 1];
+                        let high = null;
+                        let low = null;
+                        let totalVolume = null;
+
+                        item.forEach(element => {
+                            element.prices.forEach(price => {
+                                if (low === null || price < low) low = price;
+                                if (high === null || price > high) high = price;
+                            })
+                        })
+                        item.forEach(element => {
+                            element.volume.forEach(v => {
+                                totalVolume += v;
+                            })
+                        })
+
+                        candleSeriesHistoryData.push({time: timestamp.getTime() / 1000, open: open, high: high, low: low, close: close})
+                        volumeSeriesHistoryData.push({time: timestamp.getTime() / 1000, value: totalVolume});
+                    } else {
+                        candleSeriesHistoryData.push({time: timestamp.getTime() / 1000, open: NaN, high: NaN, low: NaN, close: NaN})
+                        volumeSeriesHistoryData.push({time: timestamp.getTime() / 1000, value: 0});
+                    }
+                })
+
+                candleSeries.setData(candleSeriesHistoryData.reverse());
+                volumeSeries.setData(volumeSeriesHistoryData.reverse());
+            })
+            .catch(err => console.log(err))
+    }
 
     const updateChartData = () => {
         fetch(`${API_URL}/chain`)
@@ -480,20 +559,24 @@ $(function () {
                     return {time: new Date(block.timestamp * 1000).getTime(), prices: prices, volume: volume}
                 })
 
+                let interval = 5; //minutes
                 let currentDate = new Date();
-                let chartIntervalStart = new Date();
-                chartIntervalStart.setDate(currentDate.getDate() - 7); // One day interval
+                let minutes = (Math.ceil(currentDate.getMinutes() /interval) * interval) % 60;
+                currentDate.setMinutes(minutes);
+                currentDate.setSeconds(0);
+                currentDate.setMilliseconds(0);
+                let intervalStart = new Date(currentDate);
+                intervalStart.setMinutes(currentDate.getMinutes() - interval); // One day interval
                 let filteredData = cdata.filter(element => {
-                    return element.time > chartIntervalStart.getTime() && element.prices.length !== 0 && element.volume.length !== 0
+                    return element.time >= intervalStart.getTime() && element.time < currentDate.getTime() && element.prices.length !== 0 && element.volume.length !== 0
                 })
                 if (filteredData.length !== 0) {
                     let open = filteredData[0].prices[0];
                     let lastTransaction = filteredData[filteredData.length - 1];
-                    let lastPrice = lastTransaction.prices[lastTransaction.prices.length - 1];
-                    let close = lastPrice;
+                    let close = lastTransaction.prices[lastTransaction.prices.length - 1];
                     let high = null;
                     let low = null;
-                    let totalVolume = null;
+                    let totalVolume = 0;
 
                     filteredData.forEach(element => {
                         element.prices.forEach(price => {
@@ -506,13 +589,9 @@ $(function () {
                             totalVolume += v;
                         })
                     })
-                    currentDate.setHours(0);
-                    currentDate.setMinutes(0);
-                    currentDate.setSeconds(0);
-                    currentDate.setMilliseconds(0);
-                    let currentData = {time: currentDate.getTime() / 1000, open: open, high: high, low: low, close: close};
+                    let currentData = {time: intervalStart.getTime() / 1000, open: open, high: high, low: low, close: close};
                     candleSeries.update(currentData);
-                    let currentDataVolume = {time: currentDate.getTime() / 1000, value: totalVolume};
+                    let currentDataVolume = {time: intervalStart.getTime() / 1000, value: totalVolume};
                     volumeSeries.update(currentDataVolume);
                 }
             })
@@ -523,8 +602,9 @@ $(function () {
     let refreshOrderBook = setInterval(orderBook, 5000);
 
     $btn.onclick = async () => {
-        const price = parseFloat($priceInput.value.replace(',','.'));
-        const amountCalc = parseFloat($amountInput.value.replace(',','.'));
+        const price = parseFloat($priceInput.value.replace(',', '.'));
+        const amountCalc = parseFloat($amountInput.value.replace(',', '.'));
+
         const amount = tradeDirection === TRADE_DIRECTIONS.SELL ? amountCalc : amountCalc * price;
 
         if (price === 0 || isNaN(price)) {
@@ -532,7 +612,7 @@ $(function () {
             setTimeout(returnOldButton, 2000);
             return;
         }
-        if (amount === 0 || isNaN(amountCalc)) {
+        if (amountCalc === 0 || isNaN(amountCalc)) {
             setMessageToButton("Введите количество", $error, $btn, $btnText);
             setTimeout(returnOldButton, 2000);
             return;
@@ -550,7 +630,6 @@ $(function () {
         // }
 
         let tokenBalance = balances.filter(item => item.token === symbolToSend.toUpperCase())[0];
-        console.log(tokenBalance);
 
         if (tokenBalance !== undefined && amount > tokenBalance.balance) {
             setMessageToButton("Недостаточно средств", $error, $btn, $btnText);
@@ -569,7 +648,7 @@ $(function () {
             'type': 'trade',
             'sender': walletAddress,
             'symbol': currentSymbols,
-            price,
+            'price': price,
             'send': symbolToSend,
             'sendVol': amount,
             'get': symbolToGet,
@@ -584,8 +663,8 @@ $(function () {
             if (data.MSG) {
                 if (data.MSG.includes("Tx pool synced among")) {
                     setMessageToButton("Заявка отправлена", $success, $btn, $btnText);
-                    $priceInput.value = NaN;
-                    $amountInput.value = NaN;
+                    $priceInput.value = '';
+                    $amountInput.value = '';
                     $totalPrice.innerText = '';
                     await setBalance();
                 } else if (data.MSG.includes("Try to sign in first"))
@@ -658,7 +737,17 @@ $(function () {
         $sendBtnText.innerText = 'Отправить ZSH';
     }
 
-    $exitBtn.onclick = () => {
+    $exitBtn.onclick = async () => {
+        try {
+            let result = await fetch(`${API_URL}/wallet/logout`);
+            let data = await result.json();
+            if (data.MSG)
+                if (data.MSG === true)
+                    console.log('success')
+        }
+        catch (e){
+            console.log(e);
+        }
         localStorage.removeItem("walletAddress");
         $accButtons.style.display = "none";
         $authButtons.style.display = "flex";
@@ -689,7 +778,7 @@ $(function () {
 
     $sendBtn.onclick = async () => {
         const recipient = $recipientInput.value;
-        const amount = parseFloat($zshAmountInput.value);
+        const amount = parseFloat($zshAmountInput.value.replace(',','.'));
 
         if (recipient.length === 0) {
             setMessageToButton("Укажите получателя", $error, $sendBtn, $sendBtnText);
@@ -739,12 +828,12 @@ $(function () {
             let result = await postData(`${API_URL}/transactions/new`, tx);
             hideLoader();
             let data = await result.json();
-            console.log(data);
+
             if (data.MSG) {
                 if (data.MSG.includes("Tx pool synced among")) {
                     setMessageToButton("Заявка отправлена", $success, $sendBtn, $sendBtnText);
                     $recipientInput.value = '';
-                    $zshAmountInput.value = NaN;
+                    $zshAmountInput.value = '';
                     await setBalance();
                 } else if (data.MSG.includes("Try to sign in first"))
                     showAuthError();
