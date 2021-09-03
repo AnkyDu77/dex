@@ -12,6 +12,9 @@ if __name__ == "__main__":
     host = lst[0]
 
     while True:
-        blockInfo = miner(host)
-        print('\n=====\n',blockInfo, '\n\n')
-        sleep(1)
+        try:
+            blockInfo = miner(host)
+            print('\n=====\n',blockInfo, '\n\n')
+        except:
+            print('\n=====\nJson slipperage appeared\n\n')
+        sleep(0.2)

@@ -598,8 +598,8 @@ $(function () {
             .catch(err => console.log(err))
     }
 
-    let refreshChart = setInterval(updateChartData, 5000);
-    let refreshOrderBook = setInterval(orderBook, 5000);
+    let refreshChart = setInterval(updateChartData, 1000);
+    let refreshOrderBook = setInterval(orderBook, 1000);
 
     $btn.onclick = async () => {
         const price = parseFloat($priceInput.value.replace(',', '.'));

@@ -159,6 +159,7 @@ class Blockchain(object):
     # Make non-native tokens transaction
     def makePoolTransaction(self, symbol, address, getAmount):
         pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
+        pool.poolBalance -= getAmount
         pool.accountsBalance[address] += getAmount
         pool.blockHash = self.hash(self.chain[-1])
         pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
@@ -309,7 +310,7 @@ class Blockchain(object):
 
         # Set zero accounts balances
         for account in self.accounts:
-            pool.accountsBalance[account.address] = 10000.0
+            pool.accountsBalance[account.address] = 100.0
 
         pool.blockHash = self.hash(self.chain[-1])
         pool.validHash =  hashlib.sha3_224((str(pool.poolBalance)+\
@@ -329,6 +330,7 @@ class Blockchain(object):
             poolDict = {
                 'name': pool.name,
                 'symbol': pool.symbol,
+                'poolAddress': pool.poolAddress,
                 'poolBalance': pool.poolBalance,
                 'accounts': pool.accountsBalance,
                 'blockHash': pool.blockHash,
@@ -337,17 +339,6 @@ class Blockchain(object):
             requestedPools.append(poolDict)
 
         return requestedPools
-
-
-
-
-
-
-
-
-
-
-
 
 
     @staticmethod
