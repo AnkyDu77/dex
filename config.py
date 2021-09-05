@@ -16,7 +16,8 @@ class Config():
     REQUIRED_TX_FIELDS = ['sender', 'type']
     REQUIRED_TX_TYPE = ['common', 'trade']
 
-    DEFAULT_VALID_NODES = [] #0.0.0.0:5001 '178.176.120.241:5000'
+    DEFAULT_VALID_NODES = ['localhost:5001'] #0.0.0.0:5001 '178.176.120.241:5000' , '82.151.196.144:5000'
+    DEFAULT_HOST = 'localhost'
     DEFAULT_PORT = '5000'
 
     UPLOAD_FOLDER = os.path.join(BASEDIR, 'chain')

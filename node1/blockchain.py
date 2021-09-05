@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import uuid
 import hashlib
 import requests
 import json
@@ -16,11 +17,55 @@ from syncPools import syncPools
 from syncChains import syncChains
 
 
+class Pool(object):
+    def __init__(self):
+        self.name = None
+        self.symbol = None
+        self.poolAddress = Config().IDSTR+hashlib.sha3_224(uuid.uuid4().hex.encode()).hexdigest()
+        self.poolBalance = None
+        self.accountsBalance = {}
+        self.blockHash = None
+        self.validHash = None
+
+
+class Account(object):
+    def __init__(self):
+        self.address = None
+        self.balance = None
+        self.blockHash = None
+        self.validHash = None
+        self.slt = None
+
+
+    def proofExpenditure(self, sendAmount, blockHash):
+        if self.balance - sendAmount >= 0:
+            self.balance -= sendAmount
+            self.blockHash = blockHash
+            self.validHash = hashlib.sha3_224((self.address+\
+                                                    str(self.balance)+\
+                                                    self.blockHash).encode()).hexdigest()
+
+            return True
+        else:
+            return False
+
+
+    def makeTransaction(self, sendAmount, blockHash):
+        self.balance += sendAmount
+        self.blockHash = blockHash
+        self.validHash = hashlib.sha3_224((self.address+\
+                                                str(self.balance)+\
+                                                self.blockHash).encode()).hexdigest()
+        return True
+
+
+
 class Blockchain(object):
     def __init__(self):
         self.cnfg = Config()
-
         self.chain=[]
+        self.accounts=[]
+        self.pools = []
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
@@ -29,16 +74,23 @@ class Blockchain(object):
         self.pubKey = None
 
         # Get chain data from default nodes
-        for node in self.nodes:
-            if requests.get('http://'+node).status_code == 200:
-                # Get num of files
-                filesNum = json.loads(requests.get('http://'+node+'/nodes/getChainFilesAmount').content)['MSG']
-                # Download files
-                for i in range(filesNum):
-                    chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
-                    fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
-                    with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
-                        file.write(chainFile.content)
+        if len(self.nodes) > 0:
+            for node in self.nodes:
+                try:
+                    # Get num of files
+                    filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+                    # Download files
+                    for i in range(filesNum):
+                        chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
+                        fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+                        with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+                            file.write(chainFile.content)
+                except:
+                    print(f'Node {node} does not respond')
+
+                # Get pools info
+
+                # Get accounts info
 
         # Get latest block or initiate genesis
         chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
@@ -51,6 +103,12 @@ class Blockchain(object):
             self.newBlock(previousHash=1, proof=100)
 
 
+
+    def getBalance(self, address):
+        balance = [account.balance for account in self.accounts if account.address == address][0]
+        return balance
+
+
     def newBlock(self, proof, previousHash=None):
         """
         New block creation
@@ -60,8 +118,8 @@ class Blockchain(object):
         :return: <dict> Новый блок
         """
 
-        # Match trade txs and route trades
-        self.transactTradeOrders()
+        # # Match trade txs and route trades
+        # self.transactTradeOrders()
 
         # Make new block
         block = {
@@ -88,18 +146,49 @@ class Blockchain(object):
 
         return block
 
-    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0, price=0.0, recipient=None,\
-    symbol='zsh', type="common", contract=None,\
+
+    # Approve non-native tokens expenditure
+    def proofPoolExpenditure(self, symbol, address, sendAmount):
+        pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
+        if pool.accountsBalance[address] - sendAmount >= 0:
+            pool.accountsBalance[address] -= sendAmount
+            # Send aendAmount to pool balance
+            pool.poolBalance += sendAmount
+            pool.blockHash = self.hash(self.chain[-1])
+            pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
+                                                json.dumps(pool.accountsBalance)+\
+                                                pool.blockHash).encode()).hexdigest()
+            return True
+        else:
+            return False
+
+
+    # Make non-native tokens transaction
+    def makePoolTransaction(self, symbol, address, getAmount):
+        pool = [pool for pool in self.pools if pool.symbol == symbol.upper()][0]
+        pool.poolBalance -= getAmount
+        pool.accountsBalance[address] += getAmount
+        pool.blockHash = self.hash(self.chain[-1])
+        pool.validHash = hashlib.sha3_224((str(pool.poolBalance)+\
+                                            json.dumps(pool.accountsBalance)+\
+                                            pool.blockHash).encode()).hexdigest()
+        return True
+
+
+
+
+    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0,\
+    price=0.0, recipient=None, symbol='zsh', type="common", contract=None,\
     send=None, get=None, sendVol=0.0,\
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
 
         """
-        Направляет новую транзакцию в следующий блок
+        Sends new transaction in the next block
 
-        :param sender: <str> Адрес отправителя
-        :param recipient: <str> Адрес получателя
-        :param amount: <int> Сумма
-        :return: <int> Индекс блока, который будет хранить эту транзакцию
+        :param sender: <str> Sender Address
+        :param recipient: <str> Recipient Address
+        :param amount: <int> Summ
+        :return: <str> Synchronisation or Account Verification Status
         """
 
         if comissionAmount < self.cnfg.MIN_COMISSION:
@@ -170,8 +259,6 @@ class Blockchain(object):
             print('smth went terribly wrong')
 
 
-        #return self.lastBlock['index']+1
-
 
     def transactTradeOrders(self):
         """
@@ -182,27 +269,58 @@ class Blockchain(object):
         5. Reduce volumes of amount to send of trade txs
         6. If amount to send of trade tx equals to zero -- append this tx to common txs pool and append it to block
         """
-        mathchedOrders = matchOrders(self.trade_transactions)
 
-        txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
+        commonTxs, toRemove = matchOrders(self.trade_transactions, self.pools)
 
         # Include tarde txs to common transaction pool
         for tx in commonTxs:
             self.current_transactions.append(tx)
 
         # Remove zero getVol transactions from tradeTxs pool
-        txDirKeys = list(txDir.keys())
-        toRemove = []
+        removeDicts = [order for order in self.trade_transactions if order['tradeTxId'] in toRemove]
+        for order in removeDicts:
+            self.trade_transactions.remove(order)
 
-        for key in txDirKeys:
-            toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0]
-            if len(toRemoveTemp) > 0:
-                for j in range(len(toRemoveTemp)):
-                    toRemove.append(toRemoveTemp[j])
 
-        for removeOrder in toRemove:
-            self.trade_transactions.remove(removeOrder)
 
+    # Create new pool
+    def createPool(self, name, symbol):
+        pool = Pool()
+        pool.name = name
+        pool.symbol = symbol
+        pool.poolBalance = 0.0
+
+        # Set zero accounts balances
+        for account in self.accounts:
+            pool.accountsBalance[account.address] = 1000000.0
+
+        pool.blockHash = self.hash(self.chain[-1])
+        pool.validHash =  hashlib.sha3_224((str(pool.poolBalance)+\
+                                            json.dumps(pool.accountsBalance)+\
+                                            pool.blockHash).encode()).hexdigest()
+
+        # Add new pool to pools list
+        self.pools.append(pool)
+
+        return f'New pool was created! Name: {pool.name}, Symbol: {pool.symbol}'
+
+
+    def getPools(self):
+
+        requestedPools = []
+        for pool in self.pools:
+            poolDict = {
+                'name': pool.name,
+                'symbol': pool.symbol,
+                'poolAddress': pool.poolAddress,
+                'poolBalance': pool.poolBalance,
+                'accounts': pool.accountsBalance,
+                'blockHash': pool.blockHash,
+                'validHash': pool.validHash
+            }
+            requestedPools.append(poolDict)
+
+        return requestedPools
 
 
     @staticmethod
@@ -250,7 +368,7 @@ class Blockchain(object):
         guess = f'{lastProof}{proof}'.encode()
         guessHash = hashlib.sha256(guess).hexdigest()
 
-        return guessHash[:4]=="0000"
+        return guessHash[:len(Config().MINING_COMPLEXITY)]==Config().MINING_COMPLEXITY
 
 
     def registerNode(self, address):
@@ -264,7 +382,7 @@ class Blockchain(object):
         parsedUrl = urlparse(address)
         if parsedUrl.netloc not in self.nodes:
             self.nodes.add(parsedUrl.netloc)
-            requests.post("http://"+parsedUrl.netloc+ "/nodes/register", json={'nodes':[request.host]})
+            requests.post("http://"+parsedUrl.netloc+ "/nodes/register", json={'nodes':['http://'+request.host]})
 
 
     def validChain(self, chain):

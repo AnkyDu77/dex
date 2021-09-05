@@ -1,6 +1,8 @@
 import os
 import uuid
 import hashlib
+import pickle
+import requests
 
 from Crypto.PublicKey import RSA
 from Crypto.Cipher import PKCS1_v1_5
@@ -42,6 +44,25 @@ def createWallet(password, blockHash, blockchain):
     newAccount.slt = uid
 
     blockchain.accounts.append(newAccount)
+
+    # Sync accounts between nodes
+    c = 0
+    try:
+        whiteIp = requests.get('https://api.ipify.org').content
+        whiteIp = whiteIp.decode()
+    except:
+        print('ipify.org connection denied')
+
+    pickleAccount = pickle.dumps(newAccount).hex()
+    for node in blockchain.nodes:
+        try:
+            # requests.post("http://"+node+"/wallet/sync", json={'account': newAccount, 'node': 'http://'+whiteIp+':'+Config().DEFAULT_PORT})
+            requests.post("http://"+node+"/wallet/sync", json={'account': pickleAccount, 'node': 'http://'+Config().DEFAULT_HOST+':'+Config().DEFAULT_PORT})
+            c+=1
+        except:
+            print(f'Access to node {node} denied.')
+
+    return f'New account synced among {c} nodes'
 
 
     return address

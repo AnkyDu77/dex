@@ -2,6 +2,7 @@ import os
 import re
 import sys
 import json
+import pickle
 
 from textwrap import dedent
 from time import time
@@ -270,6 +271,7 @@ def syncCh():
     node = request.json['node']
     chain = request.json['chain']
     parsedUrl = urlparse(node)
+    print(f'\n====\nparsedUrl.netloc: {parsedUrl.netloc}\n====\n\n')
     if parsedUrl.netloc in blockchain.nodes:
         blockchain.chain = chain
         if sys.getsizeof(blockchain.chain) >= Config().MAX_CHAIN_SIZE:
@@ -291,7 +293,7 @@ def register_nodes():
 
     nodes = values.get('nodes')
     if nodes is None:
-        return "Error: Please supply a valid list of nodes", 400
+        return "Error: Please provide a valid list of nodes", 400
 
     for node in nodes:
         print(node)
@@ -364,7 +366,24 @@ def newWallet():
         return jsonify({"ADDRESS": address}), 200
 
 
-# ========!!!!!!! CHANGE COINBASE TO PARTICULAR ACCOUNT !!!!!!!========
+@app.route('/wallet/sync', methods=['POST'])
+def sncAccs():
+
+    node = request.json['node']
+    parsedUrl = urlparse(node)
+
+    if parsedUrl.netloc in blockchain.nodes:
+        account = pickle.loads(bytes.fromhex(request.json['account']))
+        blockchain.accounts.append(account)
+        print('New account is added')
+        return jsonify({'MSG': 'New account is added'}), 200
+
+    else:
+        print('Node is not registered')
+        return jsonify({'MSG': 'Node is not registered'}), 400
+
+
+
 @app.route('/wallet/login', methods=['POST'])
 def loginUser():
     if request.method == 'POST':
@@ -377,6 +396,7 @@ def loginUser():
         blockchain.pubKey = pubKey
         print(f'\n====\nLogin Public Key: {blockchain.pubKey}\n\n')
         return jsonify({'MSG': True, 'ADDRESS': address}), 200
+
 
 
 @app.route('/wallet/logout', methods=['GET'])
@@ -403,6 +423,13 @@ def gBalance():
         respondList.append(balanceDict)
 
     return jsonify({'BALACNES': respondList}), 200
+
+
+#!!!!!!!! ============ Class Objects are not Serializeble! Got to use PICKLE ============ !!!!!!!!!!!!
+@app.route('/wallet/getAccounts', methods=['GET'])
+def gAccs():
+    accounts = pickle.dumps(blockchain.accounts).hex()
+    return jsonify({'ACCOUNTS': accounts}), 200
 
 
 @app.route('/pools/createPool', methods=['POST'])

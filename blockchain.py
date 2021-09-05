@@ -69,21 +69,29 @@ class Blockchain(object):
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
+        print(f'\n====\nNodes: {self.nodes}\n====\n\n')
         self.coinbase = None
         self.prkey = None
         self.pubKey = None
 
-        # # Get chain data from default nodes
-        # for node in self.nodes:
-        #     if requests.get(node).status_code == 200:
-        #         # Get num of files
-        #         filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
-        #         # Download files
-        #         for i in range(filesNum):
-        #             chainFile = requests.post(node+'/nodes/sendChainData', json={'iter':i})
-        #             fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
-        #             with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
-        #                 file.write(chainFile.content)
+        # Get chain data from default nodes
+        if len(self.nodes) > 0:
+            for node in self.nodes:
+                try:
+                    # Get num of files
+                    filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+                    # Download files
+                    for i in range(filesNum):
+                        chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
+                        fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+                        with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+                            file.write(chainFile.content)
+                except:
+                    print(f'Node {node} does not respond')
+
+                # Get pools info
+
+                # Get accounts info
 
         # Get latest block or initiate genesis
         chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
@@ -176,12 +184,12 @@ class Blockchain(object):
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
 
         """
-        Направляет новую транзакцию в следующий блок
+        Sends new transaction in the next block
 
-        :param sender: <str> Адрес отправителя
-        :param recipient: <str> Адрес получателя
-        :param amount: <int> Сумма
-        :return: <int> Индекс блока, который будет хранить эту транзакцию
+        :param sender: <str> Sender Address
+        :param recipient: <str> Recipient Address
+        :param amount: <int> Summ
+        :return: <str> Synchronisation or Account Verification Status
         """
 
         if comissionAmount < self.cnfg.MIN_COMISSION:
@@ -252,8 +260,6 @@ class Blockchain(object):
             print('smth went terribly wrong')
 
 
-        #return self.lastBlock['index']+1
-
 
     def transactTradeOrders(self):
         """
@@ -264,15 +270,6 @@ class Blockchain(object):
         5. Reduce volumes of amount to send of trade txs
         6. If amount to send of trade tx equals to zero -- append this tx to common txs pool and append it to block
         """
-        # mathchedOrders = matchOrders(self.trade_transactions)
-        #
-        # print(f"\n=====\nmathchedOrders: {mathchedOrders}\n\n")
-        # print(f"\n=====\ntrade_transactions: {self.trade_transactions}\n\n")
-        #
-        # txDir, commonTxs = transactTrades(mathchedOrders, self.trade_transactions)
-        # print('\n=====\nCommon Txs:\n',commonTxs, '\n')
-
-
 
         commonTxs, toRemove = matchOrders(self.trade_transactions, self.pools)
 
@@ -284,20 +281,6 @@ class Blockchain(object):
         removeDicts = [order for order in self.trade_transactions if order['tradeTxId'] in toRemove]
         for order in removeDicts:
             self.trade_transactions.remove(order)
-        # print('\n=====\n current_transactions:\n',self.current_transactions, '\n')
-
-        # # Remove zero getVol transactions from tradeTxs pool
-        # txDirKeys = list(txDir.keys())
-        # toRemove = []
-        #
-        # for key in txDirKeys:
-        #     toRemoveTemp = [order for i,order in enumerate(txDir[key]) if order['getVol']==0 or order['getVol']<0.000099]
-        #     if len(toRemoveTemp) > 0:
-        #         for j in range(len(toRemoveTemp)):
-        #             toRemove.append(toRemoveTemp[j])
-        #
-        # for removeOrder in toRemove:
-        #     self.trade_transactions.remove(removeOrder)
 
 
 
@@ -310,7 +293,7 @@ class Blockchain(object):
 
         # Set zero accounts balances
         for account in self.accounts:
-            pool.accountsBalance[account.address] = 100.0
+            pool.accountsBalance[account.address] = 1000000.0
 
         pool.blockHash = self.hash(self.chain[-1])
         pool.validHash =  hashlib.sha3_224((str(pool.poolBalance)+\
