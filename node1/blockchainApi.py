@@ -21,6 +21,8 @@ from authoriseUser import authoriseUser
 from signTransaction import signTransaction
 from getCoinbase import getCoinbase
 from syncPools import syncPools
+from sendAccountState import sendAccountState
+from sendNewPool import sendNewPool
 
 
 app = Flask(__name__)
@@ -144,13 +146,12 @@ def newTx():
             # Proof expenditure amount
             account = [account for account in blockchain.accounts if account.address == sender][0]
 
-            print('\n=====\nAccount address:\n',account.address,'\n')
-
             blockHash = blockchain.hash(blockchain.chain[-1])
             proofExpenditure = account.proofExpenditure(sendAmount, blockHash)
 
             if proofExpenditure == False:
                 return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+
         except:
             return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
 
@@ -271,6 +272,7 @@ def syncCh():
     node = request.json['node']
     chain = request.json['chain']
     parsedUrl = urlparse(node)
+    print(f'\n====\nparsedUrl.netloc: {parsedUrl.netloc}\n====\n\n')
     if parsedUrl.netloc in blockchain.nodes:
         blockchain.chain = chain
         if sys.getsizeof(blockchain.chain) >= Config().MAX_CHAIN_SIZE:
@@ -292,7 +294,7 @@ def register_nodes():
 
     nodes = values.get('nodes')
     if nodes is None:
-        return "Error: Please supply a valid list of nodes", 400
+        return "Error: Please provide a valid list of nodes", 400
 
     for node in nodes:
         print(node)
@@ -359,8 +361,19 @@ def newWallet():
         if len(blockchain.accounts) == 0:
             address = createWallet(psw, blockHash, blockchain)
             blockchain.coinbase = address
+
+            # Add account to pools
+            if len(blockchain.pools) > 0:
+                for pool in blockchain.pools:
+                    pool.accountsBalance[address]=0.0
+
         else:
             address = createWallet(psw, blockHash, blockchain)
+
+            # Add account to pools
+            if len(blockchain.pools) > 0:
+                for pool in blockchain.pools:
+                    pool.accountsBalance[address]=0.0
 
         return jsonify({"ADDRESS": address}), 200
 
@@ -374,12 +387,50 @@ def sncAccs():
     if parsedUrl.netloc in blockchain.nodes:
         account = pickle.loads(bytes.fromhex(request.json['account']))
         blockchain.accounts.append(account)
+
+        # Add account to pools
+        if len(blockchain.pools) > 0:
+            for pool in blockchain.pools:
+                pool.accountsBalance[account.address]=0.0
+
         print('New account is added')
         return jsonify({'MSG': 'New account is added'}), 200
 
     else:
         print('Node is not registered')
         return jsonify({'MSG': 'Node is not registered'}), 400
+
+
+@app.route('/wallet/sendAccountState', methods=['POST'])
+def sAccState():
+    node = request.json['node']
+    parsedUrl = urlparse(node)
+
+    if parsedUrl.netloc in blockchain.nodes:
+        senderAccount = pickle.loads(bytes.fromhex(request.json['senderAccount']))
+        # Sync miner tx
+        if senderAccount == None:
+            recipientAccount = pickle.loads(bytes.fromhex(request.json['recipientAccount']))
+            accountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == recipientAccount.address][0]
+            accountToSync = recipientAccount
+            print(f'Account {accountToSync.address} is synced')
+            return jsonify({'MSG': f'Account {accountToSync.address} is synced'}), 200
+
+        # Sync common tx
+        else:
+            senderAccountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == senderAccount.address][0]
+            senderAccountToSync = senderAccount
+
+            recipientAccount = pickle.loads(bytes.fromhex(request.json['recipientAccount']))
+            recipientAccountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == recipientAccount.address][0]
+            recipientAccountToSync = recipientAccount
+            print(f'Account {senderAccountToSync.address} is synced')
+            print(f'Account {recipientAccountToSync.address} is synced')
+            return jsonify({'MSG': f'Accounts:\n{senderAccountToSync.address}\n{recipientAccountToSync.address}\nis synced'}), 200
+
+    else:
+        print('Account syncing denied. Node is not registered')
+        return jsonify({'MSG': 'Account syncing denied. Node is not registered'}), 400
 
 
 
@@ -423,7 +474,8 @@ def gBalance():
 
     return jsonify({'BALACNES': respondList}), 200
 
-#!!!!!!!! ============ Class Objects are not Serializeble ============ !!!!!!!!!!!!
+
+#!!!!!!!! ============ Class Objects are not Serializeble! Got to use PICKLE ============ !!!!!!!!!!!!
 @app.route('/wallet/getAccounts', methods=['GET'])
 def gAccs():
     accounts = pickle.dumps(blockchain.accounts).hex()
@@ -433,8 +485,21 @@ def gAccs():
 @app.route('/pools/createPool', methods=['POST'])
 def crPool():
     values = json.loads(request.data)
-    creationResult = blockchain.createPool(values['name'], values['symbol'].upper())
+    pool, creationResult = blockchain.createPool(values['name'], values['symbol'].upper())
+    sendNewPool(pool, blockchain.nodes)
     return jsonify({"MSG": creationResult}), 200
+
+
+
+@app.route('/pools/getNewPool', methods=['POST'])
+def gNPool():
+    pool = pickle.loads(bytes.fromhex(request.json['pool']))
+    blockchain.pools.append(pool)
+
+    # !!!! ==== ADD ACCOUNTS SYNCING THROUGH POOL ==== !!!!
+
+    return jsonify({"MSG": f'{pool.name} pool was added'}), 200
+
 
 
 @app.route('/pools/getPools', methods=['GET'])
@@ -442,6 +507,27 @@ def gPools():
     pools = blockchain.getPools()
     return json.dumps({"MSG": pools}), 200
 
+
+@app.route('/pools/sendTokenPoolsState', methods=['POST'])
+def sTokensPoolsState():
+    node = request.json['node']
+    parsedUrl = urlparse(node)
+
+    if parsedUrl.netloc in blockchain.nodes:
+        poolAddress = request.json['poolAddress']
+        poolBalacne = request.json['poolBalacne']
+        accountAddress = request.json['accountAddress']
+        accountBalance = request.json['accountBalance']
+
+        pool = [pool for pool in blockchain.pools if pool.poolAddress==poolAddress][0]
+        pool.poolBalance = poolBalacne
+        pool.accountsBalance[accountAddress] = accountBalance
+
+        return jsonify({'MSG': 'Pool was successfully synced'}), 200
+
+    else:
+        print('Pools syncing denied. Node is not registered')
+        return jsonify({'MSG': 'Pools syncing denied. Node is not registered'}), 400
 
 
 if __name__ == '__main__':

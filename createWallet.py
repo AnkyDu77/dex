@@ -62,7 +62,6 @@ def createWallet(password, blockHash, blockchain):
         except:
             print(f'Access to node {node} denied.')
 
-    return f'New account synced among {c} nodes'
-
+    print(f'New account synced among {c} nodes')
 
     return address

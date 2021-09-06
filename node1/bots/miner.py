@@ -17,4 +17,4 @@ if __name__ == "__main__":
             print('\n=====\n',blockInfo, '\n\n')
         except:
             print('\n=====\nJson slipperage appeared\n\n')
-        sleep(0.2)
+        sleep(0.001)

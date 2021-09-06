@@ -15,6 +15,8 @@ from transactTrades import transactTrades
 from verifyTxSignature import verifyTxSignature
 from syncPools import syncPools
 from syncChains import syncChains
+from sendAccountState import sendAccountState
+from syncTokenPools import syncTokenPools
 
 
 class Pool(object):
@@ -69,7 +71,6 @@ class Blockchain(object):
         self.current_transactions=[]
         self.trade_transactions=[]
         self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
-        print(f'\n====\nNodes: {self.nodes}\n====\n\n')
         self.coinbase = None
         self.prkey = None
         self.pubKey = None
@@ -214,6 +215,11 @@ class Blockchain(object):
                 self.current_transactions.append(simpleTx)
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
+                # Sync account state
+                account = [account for account in self.accounts if account.address == recipient][0]
+                syncAccState = sendAccountState(account, self.nodes)
+                print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
+
                 return self.lastBlock['index']+1, syncStatus
 
             # Check sigitures
@@ -221,6 +227,19 @@ class Blockchain(object):
             if verifStatus == True:
                 self.current_transactions.append(simpleTx)
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+
+
+
+
+                # Sync sender account state
+                recipientAccount = [account for account in self.accounts if account.address == recipient][0]
+                senderAccount = [account for account in self.accounts if account.address == sender][0]
+                syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
+                print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
+
+
+
+
 
                 return self.lastBlock['index']+1, syncStatus
 
@@ -248,6 +267,11 @@ class Blockchain(object):
                 tradeTxJson = json.dumps(tradeTx, sort_keys=True).encode()
                 tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
                 tradeTx['tradeTxId'] = tradeTxHash
+
+                pool  = [pool for pool in self.pools if pool.symbol == send.upper() or pool.symbol == get.upper()][0]
+                poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
+                print(f'\n====\n{pool.symbol} pool state sync status: {poolSyncState}\n====\n\n')
+
                 self.trade_transactions.append(tradeTx)
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
@@ -303,7 +327,7 @@ class Blockchain(object):
         # Add new pool to pools list
         self.pools.append(pool)
 
-        return f'New pool was created! Name: {pool.name}, Symbol: {pool.symbol}'
+        return pool, f'New pool was created! Name: {pool.name}, Symbol: {pool.symbol}'
 
 
     def getPools(self):
@@ -329,7 +353,7 @@ class Blockchain(object):
         """
         Hashing new block
 
-        :param block: <dict> Блок
+        :param block: <dict> block
         :return: <str>
         """
         blockString = json.dumps(block, sort_keys=True).encode()
@@ -374,9 +398,9 @@ class Blockchain(object):
 
     def registerNode(self, address):
         """
-        Вносим новый узел в список узлов
+        Connect new node
 
-        :param address: <str> адрес узла , другими словами: 'http://192.168.0.5:5000'
+        :param address: <str> new node address
         :return: None
         """
 
