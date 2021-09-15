@@ -58,6 +58,9 @@ class Account(object):
         self.validHash = hashlib.sha3_224((self.address+\
                                                 str(self.balance)+\
                                                 self.blockHash).encode()).hexdigest()
+
+
+
         return True
 
 
@@ -137,7 +140,8 @@ class Blockchain(object):
         self.chain.append(block)
 
         # Sync chain among the nodes
-        syncChains(self.chain, self.nodes)
+        if len(self.nodes) > 0:
+            syncChains(self.chain, self.nodes)
 
         # Get chain size and write it to file if necessary
         if sys.getsizeof(self.chain) >= Config().MAX_CHAIN_SIZE:
@@ -216,9 +220,10 @@ class Blockchain(object):
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
                 # Sync account state
-                account = [account for account in self.accounts if account.address == recipient][0]
-                syncAccState = sendAccountState(account, self.nodes)
-                print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
+                if len(self.nodes) > 0:
+                    account = [account for account in self.accounts if account.address == recipient][0]
+                    syncAccState = sendAccountState(account, self.nodes)
+                    print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
 
                 return self.lastBlock['index']+1, syncStatus
 
@@ -229,16 +234,12 @@ class Blockchain(object):
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
 
-
-
                 # Sync sender account state
-                recipientAccount = [account for account in self.accounts if account.address == recipient][0]
-                senderAccount = [account for account in self.accounts if account.address == sender][0]
-                syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
-                print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
-
-
-
+                if len(self.nodes) > 0:
+                    recipientAccount = [account for account in self.accounts if account.address == recipient][0]
+                    senderAccount = [account for account in self.accounts if account.address == sender][0]
+                    syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
+                    print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
 
 
                 return self.lastBlock['index']+1, syncStatus
@@ -268,11 +269,14 @@ class Blockchain(object):
                 tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
                 tradeTx['tradeTxId'] = tradeTxHash
 
-                pool  = [pool for pool in self.pools if pool.symbol == send.upper() or pool.symbol == get.upper()][0]
-                poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
-                print(f'\n====\n{pool.symbol} pool state sync status: {poolSyncState}\n====\n\n')
+                if len(self.nodes) > 0:
+                    pool  = [pool for pool in self.pools if pool.symbol == send.upper() or pool.symbol == get.upper()][0]
+                    poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
+                    print(f'\n====\n{pool.symbol} pool state sync status: {poolSyncState}\n====\n\n')
 
                 self.trade_transactions.append(tradeTx)
+
+                # if len(self.nodes) > 0:
                 syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
 
                 return self.lastBlock['index']+1, syncStatus
@@ -310,6 +314,7 @@ class Blockchain(object):
 
     # Create new pool
     def createPool(self, name, symbol):
+
         pool = Pool()
         pool.name = name
         pool.symbol = symbol
@@ -383,11 +388,11 @@ class Blockchain(object):
     @staticmethod
     def validProof(lastProof, proof):
         """
-        Подтверждение доказательства: Содержит ли hash(last_proof, proof) 4 заглавных нуля?
+        Proof validation. Watching for comlexity equality
 
-        :param last_proof: <int> Предыдущее доказательство
-        :param proof: <int> Текущее доказательство
-        :return: <bool> True, если правильно, False, если нет.
+        :param last_proof: <int> Previous proof
+        :param proof: <int> Current proof
+        :return: <bool> True if proof is rigth, False if not.
         """
 
         guess = f'{lastProof}{proof}'.encode()
@@ -412,10 +417,10 @@ class Blockchain(object):
 
     def validChain(self, chain):
         """
-        Проверяем, является ли внесенный в блок хеш корректным
+        Proof block hash correctness
 
         :param chain: <list> blockchain
-        :return: <bool> True если она действительна, False, если нет
+        :return: <bool> True if hash works, False, if not
         """
 
         last_block = chain[0]
@@ -441,10 +446,9 @@ class Blockchain(object):
 
     def resolveConflicts(self):
         """
-        Это наш алгоритм Консенсуса, он разрешает конфликты,
-        заменяя нашу цепь на самую длинную в цепи
+        Consensus algorithm. Switches chain on a longer one
 
-        :return: <bool> True, если бы наша цепь была заменена, False, если нет.
+        :return: <bool> True if chain was awitched, False if not.
         """
 
         neighbours = self.nodes

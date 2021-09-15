@@ -46,22 +46,23 @@ def createWallet(password, blockHash, blockchain):
     blockchain.accounts.append(newAccount)
 
     # Sync accounts between nodes
-    c = 0
-    try:
-        whiteIp = requests.get('https://api.ipify.org').content
-        whiteIp = whiteIp.decode()
-    except:
-        print('ipify.org connection denied')
-
-    pickleAccount = pickle.dumps(newAccount).hex()
-    for node in blockchain.nodes:
+    if len(blockchain.nodes) > 0:
+        c = 0
         try:
-            # requests.post("http://"+node+"/wallet/sync", json={'account': newAccount, 'node': 'http://'+whiteIp+':'+Config().DEFAULT_PORT})
-            requests.post("http://"+node+"/wallet/sync", json={'account': pickleAccount, 'node': 'http://'+Config().DEFAULT_HOST+':'+Config().DEFAULT_PORT})
-            c+=1
+            whiteIp = requests.get('https://api.ipify.org').content
+            whiteIp = whiteIp.decode()
         except:
-            print(f'Access to node {node} denied.')
+            print('ipify.org connection denied')
 
-    print(f'New account synced among {c} nodes')
+        pickleAccount = pickle.dumps(newAccount).hex()
+        for node in blockchain.nodes:
+            try:
+                # requests.post("http://"+node+"/wallet/sync", json={'account': newAccount, 'node': 'http://'+whiteIp+':'+Config().DEFAULT_PORT})
+                requests.post("http://"+node+"/wallet/sync", json={'account': pickleAccount, 'node': 'http://'+Config().DEFAULT_HOST+':'+Config().DEFAULT_PORT})
+                c+=1
+            except:
+                print(f'Access to node {node} denied.')
+
+        print(f'New account synced among {c} nodes')
 
     return address

@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import requests
 import json
 import pickle
 
@@ -29,6 +30,30 @@ app = Flask(__name__)
 CORS(app)
 nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
+
+# Get accounts and pools
+if len(blockchain.nodes) > 0:
+    for node in blockchain.nodes:
+        try:
+            values = json.loads(requests.get('http://'+node+'/wallet/syncAllAccounts').content)
+            accounts = pickle.loads(bytes.fromhex(values['ACCOUNTS']))
+            if accounts == None:
+                blockchain.accounts = []
+            else:
+                blockchain.accounts = accounts
+                blockchain.coinbase = accounts[0].address
+
+            pools = pickle.loads(bytes.fromhex(values['POOLS']))
+            if pools == None:
+                blockchain.pools = []
+            else:
+                blockchain.pools = pools
+            print('Accounts and pools were added')
+            break
+        except:
+            print(f'Node {node} is not respond or smt went wrong with sync process')
+
+
 
 @app.route('/', methods=['GET'])
 @app.route('/index.html', methods=['GET'])
@@ -68,6 +93,7 @@ def mine():
             try:
                 account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
                 account.makeTransaction(transaction['sendAmount'], blockHash)
+                syncAccState = sendAccountState(account, blockchain.nodes)
             except:
                 return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
         else:
@@ -78,7 +104,6 @@ def mine():
 
     previousHash = blockchain.hash(lastBlock)
     block = blockchain.newBlock(proof, previousHash)
-
 
     syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
 
@@ -378,6 +403,14 @@ def newWallet():
         return jsonify({"ADDRESS": address}), 200
 
 
+@app.route('/wallet/syncAllAccounts', methods=['GET'])
+def sncAllAccounts():
+    pickledAccounts = pickle.dumps(blockchain.accounts).hex()
+    pickledPools = pickle.dumps(blockchain.pools).hex()
+
+    return jsonify({'ACCOUNTS': pickledAccounts, 'POOLS': pickledPools}), 200
+
+
 @app.route('/wallet/sync', methods=['POST'])
 def sncAccs():
 
@@ -411,22 +444,20 @@ def sAccState():
         # Sync miner tx
         if senderAccount == None:
             recipientAccount = pickle.loads(bytes.fromhex(request.json['recipientAccount']))
-            accountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == recipientAccount.address][0]
-            accountToSync = recipientAccount
-            print(f'Account {accountToSync.address} is synced')
-            return jsonify({'MSG': f'Account {accountToSync.address} is synced'}), 200
+            blockchain.accounts = [recipientAccount if accountToSync.address == recipientAccount.address else accountToSync for accountToSync in blockchain.accounts]
+            print(f'Account {recipientAccount.address} is synced')
+            return jsonify({'MSG': f'Account {recipientAccount.address} is synced'}), 200
 
         # Sync common tx
         else:
-            senderAccountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == senderAccount.address][0]
-            senderAccountToSync = senderAccount
+            blockchain.accounts = [senderAccount if accountToSync.address == senderAccount.address else accountToSync for accountToSync in blockchain.accounts]
 
             recipientAccount = pickle.loads(bytes.fromhex(request.json['recipientAccount']))
-            recipientAccountToSync = [accountToSync for accountToSync in blockchain.accounts if accountToSync.address == recipientAccount.address][0]
-            recipientAccountToSync = recipientAccount
-            print(f'Account {senderAccountToSync.address} is synced')
-            print(f'Account {recipientAccountToSync.address} is synced')
-            return jsonify({'MSG': f'Accounts:\n{senderAccountToSync.address}\n{recipientAccountToSync.address}\nis synced'}), 200
+            blockchain.accounts = [recipientAccount if accountToSync.address == recipientAccount.address else accountToSync for accountToSync in blockchain.accounts]
+
+            print(f'Account {senderAccount.address} is synced')
+            print(f'Account {recipientAccount.address} is synced')
+            return jsonify({'MSG': f'Accounts:\n{senderAccount.address}\n{recipientAccount.address}\nis synced'}), 200
 
     else:
         print('Account syncing denied. Node is not registered')
@@ -475,7 +506,6 @@ def gBalance():
     return jsonify({'BALACNES': respondList}), 200
 
 
-#!!!!!!!! ============ Class Objects are not Serializeble! Got to use PICKLE ============ !!!!!!!!!!!!
 @app.route('/wallet/getAccounts', methods=['GET'])
 def gAccs():
     accounts = pickle.dumps(blockchain.accounts).hex()
@@ -522,6 +552,8 @@ def sTokensPoolsState():
         pool = [pool for pool in blockchain.pools if pool.poolAddress==poolAddress][0]
         pool.poolBalance = poolBalacne
         pool.accountsBalance[accountAddress] = accountBalance
+
+        blockchain.pools = [pool if pool.poolAddress == replacePool.poolAddress else replacePool for replacePool in blockchain.pools]
 
         return jsonify({'MSG': 'Pool was successfully synced'}), 200
 
