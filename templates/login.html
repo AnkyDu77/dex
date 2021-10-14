@@ -7,16 +7,20 @@
         @import url('https://fonts.googleapis.com/css?family=Open+Sans');
 
         :root {
-            --primary-color: #4C5C97;
+            --primary-color: #546DAD;
             --secondary-color: #F2F8FF;
         }
 
         body {
-            background: url('../static/images/background-image-2-3.png') top right no-repeat;
+            background: url('../static/images/zanshin-exchange-bg-2-1.png') top right no-repeat;
             background-attachment: fixed;
             background-size: cover;
             /*padding-top: 19px;*/
             padding: 19px 13% 13%;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
         }
 
         #header {
@@ -121,7 +125,7 @@
 
         .field input:focus {
             outline: 0;
-            border: 1px solid #8299fe;
+            border: 1px solid #BAC8FE;
 
         }
 
@@ -171,12 +175,11 @@
         }
 
         #btn:hover {
-            background: #A8BAF6;
+            background: #BAC8FE;
             transition: background .3s;
         }
 
         #text-link {
-            margin-top: 16px;
             font-family: Open Sans;
             font-style: normal;
             font-weight: normal;
@@ -184,10 +187,30 @@
             line-height: 27px;
             display: flex;
             align-items: center;
-            color: #8299FE;
+            color: #9C94F1;
+            text-align: left;
+            width: fit-content;
+            align-self: flex-start;
+            text-decoration: none;
+        }
+
+        #text-link:hover {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        #small-text {
+            margin-top: 16px;
+            font-family: Open Sans;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 20px;
+            line-height: 27px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
             text-align: left;
             width: 100%;
-            text-decoration: none;
         }
 
         #loader {
@@ -227,30 +250,31 @@
 </head>
 <body>
     <div id="header">
-        <a href="index.html"><img src="../static/images/zanshin-logo.png" style="height: 38px;  margin-left: 1px;"></a>
+        <a href="index.html"><img src="../static/images/zanshin-logo-white.png" style="height: 38px;  margin-left: 1px;"></a>
     </div>
     <div id="content">
         <div id="wrap-content">
             <div id="form">
                 <div id="title">
-                    <span class="name">Вход в аккаунт</span>
-                    <span class="welcome-text">Добро пожаловать в Zanshin!</span>
+                    <span class="name" id="title-text">Вход в аккаунт</span>
+                    <span class="welcome-text" id="subtitle-text">Добро пожаловать в Zanshin!</span>
                 </div>
 <!--                <div class="field">-->
 <!--                    <label for="email">E-mail</label>-->
 <!--                    <input type="email"  name="email" id="email" required>-->
 <!--                </div>-->
                 <div class="field">
-                    <label for="password">Пароль</label>
+                    <label for="password" id="password-label">Пароль</label>
                     <input type="password"  placeholder="Введите пароль" name="password" id="password" required>
                 </div>
                 <div id="btn-wrapper">
 
                     <button id="btn">
                         <div id="loader"></div>
-                        <span id="btn-text">Войти в аккаунт</span>
+                        <span id="btn-text">Войти</span>
                     </button>
                 </div>
+                <span id="small-text">Еще нет аккаунта?</span>
                 <a href="sign_up.html" id="text-link">Зарегистрироваться</a>
             </div>
         </div>
@@ -259,50 +283,99 @@
 <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script>
     $(function () {
-        // const API_URL = "http://0.0.0.0:5000";
-        const API_URL = 'http://0.0.0.0:5000'; // Alina
+        // const API_URL = 'http://192.168.0.100:5000';
+        const API_URL = 'http://localhost:5000'; // Alina
         //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
-        const $main = "#4C5C97";
+        const $main = "#6B8BC5";
         const $error = "#E27B7B";
-        const $success = "#9FAF90";
+        const $success = "#94BFBE";
         const $passwordInput = document.getElementById("password");
         const $btn = document.getElementById("btn");
         const $loader = document.getElementById("loader");
         const $btnText = document.getElementById("btn-text");
 
+        const languages = {
+            "rus": {
+                title: "Вход в аккаунт",
+                welcomeText: "Добро пожаловать в Zanshin!",
+                passwordLabel: "Пароль",
+                passwordInputPlaceholder: "Введите пароль",
+                btnTitle: "Войти",
+                textLink: "Зарегистрироваться",
+                smallText: "Еще нет аккаунта?",
+            },
+            "eng": {
+                title: "Log in to your account",
+                welcomeText: "Welcome to Zanshin!",
+                passwordLabel: "Password",
+                passwordInputPlaceholder: "Input password",
+                btnTitle: "Log in",
+                smallText: "Don't have an account yet?",
+                textLink: "Sign up",
+            }
+        }
+
+        window.addEventListener("load", async function (event) {
+            if (localStorage.getItem('language') === null)
+                setLanguage('rus');
+            else
+                setLanguage(localStorage.getItem('language'))
+        })
+
+        const setLanguage = (language) => {
+            document.getElementById('title-text').innerText = languages[language].title;
+            document.getElementById('subtitle-text').innerText = languages[language].welcomeText;
+            document.getElementById('password-label').innerText = languages[language].passwordLabel;
+            document.getElementById('password').placeholder = languages[language].passwordInputPlaceholder;
+            document.getElementById('btn-text').innerText = languages[language].btnTitle;
+            document.getElementById('text-link').innerText = languages[language].textLink;
+            document.getElementById('small-text').innerText = languages[language].smallText;
+
+        }
+
         $btn.onclick = async () => {
             try {
                 let password = $passwordInput.value;
                 if (password === '') {
-                    setMessageToButton("Введите пароль", $error);
+                    setMessageToButton("Пожалуйста, введите пароль", "Please input password", $error);
+                    setTimeout(returnOldButton, 2000);
                     return;
                 }
                 showLoader();
                 let result = await postData(API_URL + "/wallet/login", {password});
                 hideLoader();
-                if (result.status === 500)
-                    setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
+                if (result.status === 500) {
+                    setMessageToButton("Пожалуйста, повторите попытку позже", "Please try again later", $error);
+                    setTimeout(returnOldButton, 2000);
+                }
                 else {
                     result = await result.json()
-                    if (result.MSG !== true && result.MSG.includes("Wrong password"))
-                        setMessageToButton("Неправильный пароль", $error);
+                    if (result.MSG !== true && result.MSG.includes("Wrong password")) {
+                        setMessageToButton("Неправильный пароль", "Wrong password", $error);
+                        setTimeout(returnOldButton, 2000);
+                    }
                     else {
-                        setMessageToButton("", $main);
+                        setMessageToButton("", "", $main);
                         localStorage.setItem('walletAddress', result.ADDRESS);
                         document.location.href = "index.html";
                     }
                 }
             } catch (e) {
                 hideLoader();
-                setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
+                setMessageToButton("Пожалуйста, повторите попытку позже", "Please try again later", $error);
+                setTimeout(returnOldButton, 2000);
             }
 
 
         }
-        const setMessageToButton = (message, backgroundColor = $main) => {
+        const setMessageToButton = (russianMessage, englishMessage, backgroundColor = $main) => {
+            let language = localStorage.getItem('language');
             $btn.style.background = backgroundColor;
             $btn.style.pointerEvents = "none";
-            $btnText.innerText = message;
+            if (language === "rus" || language === null)
+                $btnText.innerText = russianMessage;
+            else
+                $btnText.innerText = englishMessage;
         }
 
         $passwordInput.oninput = () => {
@@ -312,7 +385,8 @@
         const returnOldButton = () => {
             $btn.style.pointerEvents = "auto";
             $btn.style.removeProperty("background");
-            $btnText.innerText = "Войти в аккаунт";
+            let language = localStorage.getItem('language');
+            $btnText.innerText = languages[language].btnTitle;
         }
 
         const showLoader = () => {

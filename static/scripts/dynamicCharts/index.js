@@ -7,7 +7,7 @@ const candleSeriesProperties = {
     height: height,
     layout: {
         backgroundColor: 'rgba(255,255,255, 1)',
-        textColor: '#4C5C97',
+        textColor: '#546DAD',
         fontFamily: 'Open Sans',
         border: '1px solid red',
     },
@@ -56,12 +56,12 @@ const candleSeries = chart.addCandlestickSeries({
     // wickDownColor: '#FE938C',
     // wickUpColor: '#A9D8B8',
 
-    upColor: '#9FAF90',
-    downColor: '#FB8387',
-    borderDownColor: '#FB8387',
-    borderUpColor: '#9FAF90',
-    wickDownColor: '#FB8387',
-    wickUpColor: '#9FAF90',
+    upColor: '#94BFBE',
+    downColor: '#F0899C',
+    borderDownColor: '#F0899C',
+    borderUpColor: '#94BFBE',
+    wickDownColor: '#F0899C',
+    wickUpColor: '#94BFBE',
 
     // upColor: '#8299FE',
     // downColor: 'transparent',
@@ -96,7 +96,7 @@ chart.subscribeCrosshairMove(param => {
     toolTip.style.display = 'block';
     let prices = param.seriesPrices.get(candleSeries);
     let volume = param.seriesPrices.get(volumeSeries);
-    toolTip.innerHTML = '<div style="color: #4C5C97"><div class="tool-tip-content">' + 'O: ' + prices.open +
+    toolTip.innerHTML = '<div style="color: #546DAD"><div class="tool-tip-content">' + 'O: ' + prices.open +
         '</div><div class="tool-tip-content">' + 'H: ' + prices.high + '</div><div class="tool-tip-content">' +
         'L: ' + prices.low + '</div><div class="tool-tip-content">' + 'C: ' + prices.close + '</div>' +
         '<div class="tool-tip-content">' + 'V: ' + volume + '</div>' +'</div>';

@@ -38,16 +38,21 @@ $(function () {
     const $sendBtnText = document.getElementById('send-btn-text');
     const $recipientInput = document.getElementById('recipient-input');
     const $zshAmountInput = document.getElementById('zsh-amount-input');
+    const $openOrdersContent = document.getElementById('open-orders-content');
+    const $ordersHistoryContent = document.getElementById('orders-history-content');
+    const $intervalButtons = document.getElementById('interval-buttons');
 
-    // const API_URL = 'http://0.0.0.0:5000';
-    const API_URL = 'http://0.0.0.0:5000'; // Alina http://178.176.120.241:5002
+    //const API_URL = 'http://192.168.0.100:5000';
+    const API_URL = 'http://localhost:5000'; // Alina
     //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
     const TRADE_DIRECTIONS = {SELL: 'SELL', BUY: 'BUY'};
     let tradeDirection = TRADE_DIRECTIONS.BUY;
 
-    const $primaryColor = "#4C5C97"
-    const $error = "#E27B7B";
-    const $success = "#9FAF90";
+    let greenColor = "#94BFBE"; //B1CC74 B9FFB7
+    let redColor = "#F0899C";
+    const $primaryColor = "#546DAD"
+    const $error = redColor;
+    const $success = greenColor; //"#9FAF90";
 
     const cryptocurrencyPairs = ['ZSH/USDT', 'BTC/USDT', 'BTC/DAI', 'ETH/USDT', 'ETH/DAI', 'BNB/USDT', 'BNB/DAI', 'DOT/USDT',
         'DOT/DAI', 'UNI/USDT', 'UNI/DAI', 'BTC/ETH', 'ETH/UNI', 'BTC/DOT', 'ETH/DOT']
@@ -58,6 +63,15 @@ $(function () {
     let secondCryptocurrency = defaultCryptocurrencyPair.substring(defaultCryptocurrencyPair.indexOf('/') + 1,
         defaultCryptocurrencyPair.length);
     let balances = [];
+    let language = localStorage.getItem('language');
+
+    const setPhraseLanguage = (element, russianPhrase, englishPhrase) => {
+        language = localStorage.getItem('language');
+        if (language === "rus" || language === null)
+            element.innerText = russianPhrase;
+        else
+            element.innerText = englishPhrase;
+    }
 
     const setCryptocurrency = (currentPair) => {
         $currentPairLabel.innerText = currentPair;
@@ -67,16 +81,20 @@ $(function () {
             currentCryptocurrencyPair.length);
 
 
-        if ($('#switch').prop('checked')) $btnText.innerText = `Продать ${firstCryptocurrency}`;
-        else $btnText.innerText = `Купить ${firstCryptocurrency}`;
+        if ($('#switch').prop('checked')) {
+            setPhraseLanguage($btnText, `Продать ${firstCryptocurrency}`, `Sell ${firstCryptocurrency}`);
+        }
+        else {
+            setPhraseLanguage($btnText, `Купить ${firstCryptocurrency}`, `Buy ${firstCryptocurrency}`);
+        }
         $secondCryptocurrencyLabel.innerText = secondCryptocurrency;
         $firstCryptocurrencyLabel.innerText = firstCryptocurrency;
         $totalCryptocurrencyLabel.innerText = secondCryptocurrency;
 
-        $tablePriceCol1.innerText = `Цена (${secondCryptocurrency})`;
-        $tableAmountCol1.innerText = `Количество (${firstCryptocurrency})`;
-        $tablePriceCol2.innerText = `Цена (${secondCryptocurrency})`;
-        $tableAmountCol2.innerText = `Количество (${firstCryptocurrency})`;
+        setPhraseLanguage($tablePriceCol1, `Цена(${secondCryptocurrency})`, `Price(${secondCryptocurrency})`)
+        setPhraseLanguage($tableAmountCol1, `Количество(${firstCryptocurrency})`, `Amount (${firstCryptocurrency})`)
+        setPhraseLanguage($tablePriceCol2, `Цена(${secondCryptocurrency})`, `Price(${secondCryptocurrency})`)
+        setPhraseLanguage($tableAmountCol2, `Количество(${firstCryptocurrency})`, `Amount (${firstCryptocurrency})`)
 
         // setChartData();
     }
@@ -127,10 +145,10 @@ $(function () {
 
     $switchButton.onclick = () => {
         if ($('#switch').prop('checked')) {
-            $btnText.innerText = `Продать ${firstCryptocurrency}`;
+            setPhraseLanguage($btnText, `Продать ${firstCryptocurrency}`, `Sell ${firstCryptocurrency}`);
             tradeDirection = TRADE_DIRECTIONS.SELL;
         } else {
-            $btnText.innerText = `Купить ${firstCryptocurrency}`;
+            setPhraseLanguage($btnText, `Купить ${firstCryptocurrency}`, `Buy ${firstCryptocurrency}`)
             tradeDirection = TRADE_DIRECTIONS.BUY;
         }
     }
@@ -170,8 +188,7 @@ $(function () {
     $zshAmountInput.oninput = () => {
         const $commissionInfo = document.getElementById('commission-info');
         let commission = Math.round((parseFloat($zshAmountInput.value.replace(',','.')) * 0.0001)*10**6)/10**6;
-        $commissionInfo.innerText = `Комиссия (0,01%): ${commission} ZSH`;
-
+        setPhraseLanguage($commissionInfo, `Комиссия (0,01%): ${commission} ZSH`, `Commission (0,01%): ${commission} ZSH`)
         numericInputHandler($zshAmountInput, decimals);
     }
 
@@ -216,6 +233,43 @@ $(function () {
     //     refreshOrderBook = setInterval(orderBook, 5000);
     // }
 
+    let interval = 5; //default 5 minutes
+
+    $intervalButtons.onclick = (event) => {
+        let buttons = $intervalButtons.getElementsByTagName('div');
+        for (let i = 0; i < buttons.length; i++){
+            buttons[i].style.borderColor = 'transparent';
+        }
+        let target = getEventTarget(event).innerText;
+        switch (target) {
+            case '5m':
+                buttons[0].style.borderColor = 'rgba(255,255,255,0.6)';
+                interval = 5;
+                setChartData();
+                break;
+            case '15m':
+                buttons[1].style.borderColor = 'rgba(255,255,255,0.6)';
+                interval = 15;
+                setChartData();
+                break;
+            case '1h':
+                buttons[2].style.borderColor = 'rgba(255,255,255,0.6)';
+                interval = 60;
+                setChartData()
+                break;
+            case '4h':
+                buttons[3].style.borderColor = 'rgba(255,255,255,0.6)';
+                interval = 240;
+                setChartData();
+                break;
+            case '1d':
+                buttons[4].style.borderColor = 'rgba(255,255,255,0.6)';
+                interval = 1440;
+                setChartData();
+                break;
+        }
+    }
+
     const orderBookLimit = 10;
 
     const createTable = (container) => {
@@ -252,22 +306,26 @@ $(function () {
         })
         let parsedData = filteredData.map(element => {
             let direction = null;
+            let volume = 0;
             let date = new Date(element.timestamp*1000)
             let formattedDate = getFormattedDate(date);
             // first token && second token
             if (element.get === firstCryptocurrency.toLowerCase() && element.send === secondCryptocurrency.toLowerCase()) {
                 direction = 'BUY';
+                volume = parseFloat(element.getVol).toFixed(decimals);
             }
             // second token && first token
             if (element.get === secondCryptocurrency.toLowerCase() && element.send === firstCryptocurrency.toLowerCase()) {
                 direction = 'SELL';
+                volume = parseFloat(element.sendVol).toFixed(decimals);
             }
-            return [formattedDate, element.symbol.toUpperCase(), 'LIMIT', direction, element.price, parseFloat(element.sendVol).toFixed(6)]
+            return [formattedDate, element.symbol.toUpperCase(), 'LIMIT', direction, element.price, volume]
         })
 
         let infoWrapper = document.getElementById('open-orders-info')
         if (filteredData.length > 0) {
             infoWrapper.style.display = 'none';
+            $openOrdersContent.style.display = 'block';
             let openOrdersTable = document.getElementById('open-orders-table-body');
             openOrdersTable.innerHTML = "";
             for (let i = 0; i < filteredData.length; ++i) {
@@ -280,6 +338,7 @@ $(function () {
                 }
             }
         } else {
+            $openOrdersContent.style.display = 'none';
             infoWrapper.style.display = 'block';
         }
     }
@@ -297,30 +356,41 @@ $(function () {
 
         let parsedData = mergedData.map(element => {
             let pair = element.symbol;
+            let volume = 0;
             let firstSymbol = pair.substring(0, pair.indexOf('/'));
             let secondSymbol = pair.substring(pair.indexOf('/') + 1, pair.length);
             let direction = null;
             let date = new Date(element.timestamp*1000)
-            let formattedDate = getFormattedDate(date);
+            // let formattedDate = getFormattedDate(date);
             if (element.contract === firstSymbol) {
-                direction = 'BUY';
+                direction = 'SELL';
+                volume = parseFloat(element.sendAmount).toFixed(decimals);
             }
             if (element.contract === secondSymbol) {
-                direction = 'SELL';
+                direction = 'BUY';
+                volume = parseFloat(element.recieveAmount).toFixed(decimals);
             }
             let status = 'DONE';
-            return [formattedDate, element.symbol.toUpperCase(), 'LIMIT', direction, element.price, status]
+            return [date, element.symbol.toUpperCase(), 'LIMIT', direction, element.price, volume, status]
+        })
+
+        parsedData.sort(function(a,b){
+            return new Date(b[0]) - new Date(a[0]);
+        });
+        parsedData.forEach(element => {
+            element[0] = getFormattedDate(element[0]);
         })
 
         let infoWrapper = document.getElementById('orders-history-info')
         if ( mergedData.length > 0) {
             infoWrapper.style.display = 'none';
+            $ordersHistoryContent.style.display = 'block';
             let ordersHistoryTable = document.getElementById('orders-history-table-body');
             ordersHistoryTable.innerHTML = "";
             for (let i = 0; i < mergedData.length; ++i) {
                 let tableRow = document.createElement('tr');
                 ordersHistoryTable.appendChild(tableRow);
-                for (let j = 0; j < 6; ++j) {
+                for (let j = 0; j < 7; ++j) {
                     if (j === 5 && parsedData[i][j] === 'DONE')
                     {
                         let tableCell = document.createElement('td');
@@ -328,7 +398,7 @@ $(function () {
                         let tableCellText = document.createElement('div');
                         tableCell.appendChild(tableCellText);
                         tableCellText.innerText = parsedData[i][j];
-                        tableCellText.style.backgroundColor = '#9FAF90';
+                        tableCellText.style.backgroundColor = greenColor;
                         tableCellText.style.lineHeight = '12px';
                         tableCellText.style.padding = '2px 10px';
                         tableCellText.style.borderRadius = '10px';
@@ -341,6 +411,7 @@ $(function () {
                 }
             }
         } else {
+            $ordersHistoryContent.style.display = 'none';
             infoWrapper.style.display = 'block';
         }
     }
@@ -403,7 +474,7 @@ $(function () {
                     let cols = $asksTable.rows[i + 1].getElementsByTagName("td");
                     if (orderBookData.asks[i] !== undefined && i < orderBookData.asks.length) {
                         cols[0].innerText = orderBookData.asks[i].price.toFixed(decimals);
-                        cols[0].style.backgroundColor = '#FB8387'; // F08CAE EA9EC7
+                        cols[0].style.backgroundColor = redColor; // F08CAE EA9EC7
                         cols[0].style.borderRadius = '10px';
                         cols[0].style.textAlign = 'center';
                         cols[0].style.color = '#fff';
@@ -422,7 +493,7 @@ $(function () {
                     let cols = $bidsTable.rows[i + 1].getElementsByTagName("td");
                     if (orderBookData.bids[i] !== undefined && i < orderBookData.bids.length) {
                         cols[0].innerText = orderBookData.bids[i].price.toFixed(decimals);
-                        cols[0].style.backgroundColor = '#9FAF90'; //899E8B 99C5B5 9FAF90
+                        cols[0].style.backgroundColor = greenColor; //899E8B 99C5B5 9FAF90
                         cols[0].style.borderRadius = '10px';
                         cols[0].style.textAlign = 'center';
                         cols[0].style.color = '#fff';
@@ -459,16 +530,17 @@ $(function () {
                     return {time: new Date(block.timestamp * 1000).getTime(), prices: prices, volume: volume}
                 })
 
-                let interval = 5; //minutes
                 let currentDate = new Date();
-                let intervalStart = new Date();
-
-                intervalStart.setMinutes(currentDate.getMinutes() - interval); // One day interval
-                let minutes = (Math.round(intervalStart.getMinutes()/interval) * interval) % 60;
-                intervalStart.setMinutes(minutes);
-                intervalStart.setSeconds(0);
-                intervalStart.setMilliseconds(0);
-
+                let minutes = (Math.ceil(currentDate.getMinutes() /interval) * interval) % 60;
+                if (minutes === 0) {
+                    let hours = Math.ceil(interval / 60);
+                    currentDate.setHours(currentDate.getHours() + hours);
+                }
+                currentDate.setMinutes(minutes);
+                currentDate.setSeconds(0);
+                currentDate.setMilliseconds(0);
+                let intervalStart = new Date(currentDate);
+                intervalStart.setMinutes(intervalStart.getMinutes() - interval);
                 let filteredData = cdata.filter(element => {
                     return element.time < intervalStart.getTime() && element.prices.length !== 0 && element.volume.length !== 0
                 })
@@ -476,6 +548,7 @@ $(function () {
                 let intervalEnd = new Date(intervalStart);
                 intervalStart.setMinutes(intervalStart.getMinutes() - interval);
                 let reversedFilteredData = filteredData.reverse();
+                console.log(reversedFilteredData);
                 let history = [[]];
 
                 let i = 0;
@@ -507,9 +580,9 @@ $(function () {
                     let timestamp = new Date(item[0]);
                     if (item.length > 1) {
                         item.shift()
-                        let open = item[0].prices[0];
+                        let close = item[0].prices[0];
                         let lastTransaction = item[item.length - 1];
-                        let close = lastTransaction.prices[lastTransaction.prices.length - 1];
+                        let open = lastTransaction.prices[lastTransaction.prices.length - 1];
                         let high = null;
                         let low = null;
                         let totalVolume = null;
@@ -559,14 +632,17 @@ $(function () {
                     return {time: new Date(block.timestamp * 1000).getTime(), prices: prices, volume: volume}
                 })
 
-                let interval = 5; //minutes
                 let currentDate = new Date();
                 let minutes = (Math.ceil(currentDate.getMinutes() /interval) * interval) % 60;
+                if (minutes === 0) {
+                    let hours = Math.ceil(interval / 60);
+                    currentDate.setHours(currentDate.getHours() + hours);
+                }
                 currentDate.setMinutes(minutes);
                 currentDate.setSeconds(0);
                 currentDate.setMilliseconds(0);
                 let intervalStart = new Date(currentDate);
-                intervalStart.setMinutes(currentDate.getMinutes() - interval); // One day interval
+                intervalStart.setMinutes(intervalStart.getMinutes() - interval); // One day interval
                 let filteredData = cdata.filter(element => {
                     return element.time >= intervalStart.getTime() && element.time < currentDate.getTime() && element.prices.length !== 0 && element.volume.length !== 0
                 })
@@ -594,12 +670,18 @@ $(function () {
                     let currentDataVolume = {time: intervalStart.getTime() / 1000, value: totalVolume};
                     volumeSeries.update(currentDataVolume);
                 }
+                else {
+                    let currentData = {time: intervalStart.getTime() / 1000, open: NaN, high: NaN, low: NaN, close: NaN};
+                    candleSeries.update(currentData);
+                    let currentDataVolume = {time: intervalStart.getTime() / 1000, value: NaN};
+                    volumeSeries.update(currentDataVolume);
+                }
             })
             .catch(err => console.log(err))
     }
 
-    let refreshChart = setInterval(updateChartData, 1000);
-    let refreshOrderBook = setInterval(orderBook, 1000);
+    let refreshChart = setInterval(updateChartData, 5000);
+    let refreshOrderBook = setInterval(orderBook, 5000);
 
     $btn.onclick = async () => {
         const price = parseFloat($priceInput.value.replace(',', '.'));
@@ -608,12 +690,12 @@ $(function () {
         const amount = tradeDirection === TRADE_DIRECTIONS.SELL ? amountCalc : amountCalc * price;
 
         if (price === 0 || isNaN(price)) {
-            setMessageToButton("Введите цену", $error, $btn, $btnText);
+            setMessageToButton("Пожалуйста, введите цену", "Please input price", $error, $btn, $btnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
-        if (amountCalc === 0 || isNaN(amountCalc)) {
-            setMessageToButton("Введите количество", $error, $btn, $btnText);
+        if (amount === 0 || isNaN(amountCalc)) {
+            setMessageToButton("Пожалуйста, введите количество", "Please input amount", $error, $btn, $btnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
@@ -632,7 +714,7 @@ $(function () {
         let tokenBalance = balances.filter(item => item.token === symbolToSend.toUpperCase())[0];
 
         if (tokenBalance !== undefined && amount > tokenBalance.balance) {
-            setMessageToButton("Недостаточно средств", $error, $btn, $btnText);
+            setMessageToButton("Недостаточно средств", "Insufficient funds", $error, $btn, $btnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
@@ -648,7 +730,7 @@ $(function () {
             'type': 'trade',
             'sender': walletAddress,
             'symbol': currentSymbols,
-            'price': price,
+            price,
             'send': symbolToSend,
             'sendVol': amount,
             'get': symbolToGet,
@@ -662,7 +744,7 @@ $(function () {
             let data = await result.json();
             if (data.MSG) {
                 if (data.MSG.includes("Tx pool synced among")) {
-                    setMessageToButton("Заявка отправлена", $success, $btn, $btnText);
+                    setMessageToButton("Заявка отправлена", "Application has been sent", $success, $btn, $btnText);
                     $priceInput.value = '';
                     $amountInput.value = '';
                     $totalPrice.innerText = '';
@@ -670,16 +752,16 @@ $(function () {
                 } else if (data.MSG.includes("Try to sign in first"))
                     showAuthError();
                 else if (data.MSG.includes("Spend amount exceeds account balance"))
-                    setMessageToButton("Недостаточно средств", $error, $btn, $btnText);
+                    setMessageToButton("Недостаточно средств", "Insufficient funds", $error, $btn, $btnText);
                 else {
-                    setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
+                    setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $btn, $btnText);
                 }
             } else {
-                setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
+                setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $btn, $btnText);
             }
         } catch (e) {
             hideLoader();
-            setMessageToButton("Ошибка на сервере. Пожалуйста повторите попытку позже.", $error, $btn, $btnText);
+            setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $btn, $btnText);
         }
         setTimeout(returnOldButton, 2000);
     }
@@ -710,10 +792,14 @@ $(function () {
         $sendBtnText.style.display = "block";
     }
 
-    const setMessageToButton = (message, backgroundColor = $primaryColor, button, buttonText) => {
+    const setMessageToButton = (russianMessage, englishMessage, backgroundColor = $primaryColor, button, buttonText) => {
+        language = localStorage.getItem('language');
         button.style.background = backgroundColor;
         button.style.pointerEvents = "none";
-        buttonText.innerText = message;
+        if (language === "rus" || language === null)
+            buttonText.innerText = russianMessage;
+        else
+            buttonText.innerText = englishMessage;
     }
 
     const showAuthError = () => {
@@ -733,8 +819,9 @@ $(function () {
         $btn.style.removeProperty("background");
         $sendBtn.style.pointerEvents = "auto";
         $sendBtn.style.removeProperty("background");
-        $btnText.innerText = tradeDirection === TRADE_DIRECTIONS.SELL ? `Продать ${firstCryptocurrency}` : `Купить ${firstCryptocurrency}`;
-        $sendBtnText.innerText = 'Отправить ZSH';
+        tradeDirection === TRADE_DIRECTIONS.SELL ? setPhraseLanguage($btnText, `Продать ${firstCryptocurrency}`, `Sell ${firstCryptocurrency}`)
+            : setPhraseLanguage($btnText, `Купить ${firstCryptocurrency}`, `Buy ${firstCryptocurrency}`);
+        setPhraseLanguage($sendBtnText, 'Отправить ZSH', 'Send ZSH')
     }
 
     $exitBtn.onclick = async () => {
@@ -781,12 +868,12 @@ $(function () {
         const amount = parseFloat($zshAmountInput.value.replace(',','.'));
 
         if (recipient.length === 0) {
-            setMessageToButton("Укажите получателя", $error, $sendBtn, $sendBtnText);
+            setMessageToButton("Пожалуйста, укажите адрес получателя", "Please input recipient's address", $error, $sendBtn, $sendBtnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
         if (amount === 0 || isNaN(amount)) {
-            setMessageToButton("Введите количество", $error, $sendBtn, $sendBtnText);
+            setMessageToButton("Введите количество", "Please input amount", $error, $sendBtn, $sendBtnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
@@ -800,7 +887,7 @@ $(function () {
         let tokenBalance = balances.filter(item => item.token === 'ZSH')[0];
 
         if (tokenBalance !== undefined && amount > tokenBalance.balance) {
-            setMessageToButton("Недостаточно средств", $error, $sendBtn, $sendBtnText);
+            setMessageToButton("Недостаточно средств", "Insufficient funds", $error, $sendBtn, $sendBtnText);
             setTimeout(returnOldButton, 2000);
             return;
         }
@@ -831,23 +918,23 @@ $(function () {
 
             if (data.MSG) {
                 if (data.MSG.includes("Tx pool synced among")) {
-                    setMessageToButton("Заявка отправлена", $success, $sendBtn, $sendBtnText);
+                    setMessageToButton("Заявка отправлена", "Application has been sent", $success, $sendBtn, $sendBtnText);
                     $recipientInput.value = '';
                     $zshAmountInput.value = '';
                     await setBalance();
                 } else if (data.MSG.includes("Try to sign in first"))
                     showAuthError();
                 else if (data.MSG.includes("Spend amount exceeds account balance"))
-                    setMessageToButton("Недостаточно средств", $error, $sendBtn, $sendBtnText);
+                    setMessageToButton("Недостаточно средств", "Insufficient funds", $error, $sendBtn, $sendBtnText);
                 else {
-                    setMessageToButton("Ошибка на сервере 1. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+                    setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $sendBtn, $sendBtnText);
                 }
             } else {
-                setMessageToButton("Ошибка на сервере 2. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+                setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $sendBtn, $sendBtnText);
             }
         } catch (e) {
             hideLoader();
-            setMessageToButton("Ошибка на сервере 3. Пожалуйста повторите попытку позже.", $error, $sendBtn, $sendBtnText);
+            setMessageToButton("Ошибка на сервере. Пожалуйста, повторите попытку позже.", "Server error. Please try again later", $error, $sendBtn, $sendBtnText);
         }
         setTimeout(returnOldButton, 2000);
     }

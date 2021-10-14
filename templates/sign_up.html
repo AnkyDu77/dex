@@ -7,15 +7,19 @@
         @import url('https://fonts.googleapis.com/css?family=Open+Sans');
 
         :root {
-            --primary-color: #4C5C97;
+            --primary-color: #546DAD;
             --secondary-color: #F2F8FF;
         }
 
         body {
-            background: url('../static/images/background-image-2-3.png') no-repeat fixed top right;
+            background: url('../static/images/zanshin-exchange-bg-2-1.png') no-repeat fixed top right;
             background-size: cover;
             /*padding-top: 19px;*/
             padding: 19px 13% 13%;
+        }
+
+        body::-webkit-scrollbar {
+            display: none;
         }
 
         #header {
@@ -120,7 +124,7 @@
 
         .field input:focus {
             outline: 0;
-            border: 1px solid #8299fe;
+            border: 1px solid #BAC8FE;
 
         }
 
@@ -170,13 +174,12 @@
         }
 
         #btn:hover {
-            background: #A8BAF6;
+            background: #BAC8FE;
             transition: background .3s;
             border: none;
         }
 
         #text-link {
-
             font-family: Open Sans;
             font-style: normal;
             font-weight: normal;
@@ -184,10 +187,16 @@
             line-height: 27px;
             display: flex;
             align-items: center;
-            color: #8299FE;
+            color: #9C94F1;
             text-align: left;
-            width: 100%;
+            width: fit-content;
+            align-self: flex-start;
             text-decoration: none;
+        }
+
+        #text-link:hover {
+            opacity: 0.6;
+            transition: opacity 0.2s;
         }
 
         #small-text {
@@ -208,25 +217,25 @@
 </head>
 <body>
 <div id="header">
-    <a href="index.html"><img src="../static/images/zanshin-logo.png" style="height: 38px;  margin-left: 1px;"></a>
+    <a href="index.html"><img src="../static/images/zanshin-logo-white.png" style="height: 38px;  margin-left: 1px;"></a>
 </div>
 <div id="content">
     <div id="wrap-content">
         <div id="form">
             <div id="title">
-                <span class="name">Создание аккаунта</span>
-                <span class="welcome-text">Добро пожаловать в Zanshin!</span>
+                <span class="name" id="title-text">Создание аккаунта</span>
+                <span class="welcome-text" id="subtitle-text">Добро пожаловать в Zanshin!</span>
             </div>
 <!--            <div class="field">-->
 <!--                <label for="email">E-mail</label>-->
 <!--                <input type="email"  name="email" id="email" required>-->
 <!--            </div>-->
             <div class="field">
-                <label for="password">Пароль</label>
+                <label for="password" id="password-label">Пароль</label>
                 <input type="password"  placeholder="Введите пароль" name="password" id="password" required>
             </div>
             <div class="field">
-                <label for="password">Повторите пароль</label>
+                <label for="password" id="confirm-password-label">Подтвердите пароль</label>
                 <input type="password"  placeholder="Введите пароль еще раз" name="password" id="confirm" required>
             </div>
             <div id="btn-wrapper">
@@ -244,16 +253,61 @@
 <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
 <script>
     $(function () {
-        const API_URL = 'http://0.0.0.0:5000'; // Alina
+        //const API_URL = 'http://192.168.0.100:5000';
+        const API_URL = 'http://localhost:5000'; // Alina
         //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
-        const $main = "#4C5C97"
+        const $main = "#6B8BC5"
         const $error = "#E27B7B";
-        const $success = "#9FAF90";
+        const $success = "#94BFBE";
         const $passwordInput = document.getElementById("password");
         const $btn = document.getElementById("btn");
         const $loader = document.getElementById("loader");
         const $btnText = document.getElementById("btn-text");
         const $confirmPasswordInput = document.getElementById("confirm");
+
+        const languages = {
+            "rus": {
+                title: "Создание аккаунта",
+                welcomeText: "Добро пожаловать в Zanshin!",
+                passwordLabel: "Пароль",
+                passwordInputPlaceholder: "Введите пароль",
+                confirmPasswordLabel: "Подтвердите пароль",
+                confirmPasswordInputPlaceholder: "Введите пароль еще раз",
+                btnTitle: "Создать аккаунт",
+                smallText: "Уже зарегистрированы?",
+                textLink: "Войти в аккаунт",
+            },
+            "eng": {
+                title: "Create an account",
+                welcomeText: "Welcome to Zanshin!",
+                passwordLabel: "Password",
+                passwordInputPlaceholder: "Input password",
+                confirmPasswordLabel: "Confirm password",
+                confirmPasswordInputPlaceholder: "Input password again",
+                btnTitle: "Create an account",
+                smallText: "Already have an account?",
+                textLink: "Log in",
+            }
+        }
+
+        window.addEventListener("load", async function (event) {
+            if (localStorage.getItem('language') === null)
+                setLanguage('rus');
+            else
+                setLanguage(localStorage.getItem('language'))
+        })
+
+        const setLanguage = (language) => {
+            document.getElementById('title-text').innerText = languages[language].title;
+            document.getElementById('subtitle-text').innerText = languages[language].welcomeText;
+            document.getElementById('password-label').innerText = languages[language].passwordLabel;
+            document.getElementById('password').placeholder = languages[language].passwordInputPlaceholder;
+            document.getElementById('confirm-password-label').innerText = languages[language].confirmPasswordLabel;
+            document.getElementById('confirm').placeholder = languages[language].confirmPasswordInputPlaceholder;
+            document.getElementById('btn-text').innerText = languages[language].btnTitle;
+            document.getElementById('small-text').innerText = languages[language].smallText;
+            document.getElementById('text-link').innerText = languages[language].textLink;
+        }
 
         $btn.onclick = async () => {
             try {
@@ -261,35 +315,43 @@
                 let password2 = $confirmPasswordInput.value;
                 if (password === '' || password2 === '') {
                     setMessageToButton("Введите пароли", $error);
+                    setTimeout(returnOldButton, 2000);
                     return;
                 }
 
                 if (password !== password2) {
                     setMessageToButton("Пароли не совпадают", $error);
+                    setTimeout(returnOldButton, 2000);
                     return;
                 }
                 showLoader()
                 let result = await postData(API_URL + "/wallet/new", {password});
                 hideLoader()
                 if (result.status === 200) {
-                    setMessageToButton("", $main);
+                    setMessageToButton("", "", $main);
                     localStorage.setItem('walletAddress', (await result.json()).ADDRESS);
                     document.location.href = "login.html";
                 }
                 else {
                     setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
+                    setTimeout(returnOldButton, 2000);
                 }
             } catch (e) {
                 hideLoader();
                 setMessageToButton("Пожалуйста, повторите попытку позже.", $error);
+                setTimeout(returnOldButton, 2000);
             }
 
         }
 
-        const setMessageToButton = (message, backgroundColor = $main) => {
+        const setMessageToButton = (russianMessage, englishMessage, backgroundColor = $main) => {
+            let language = localStorage.getItem('language');
             $btn.style.background = backgroundColor;
             $btn.style.pointerEvents = "none";
-            $btnText.innerText = message;
+            if (language === "rus" || language === null)
+                $btnText.innerText = russianMessage;
+            else
+                $btnText.innerText = englishMessage;
         }
 
         $passwordInput.oninput = () => {
@@ -303,7 +365,8 @@
         const returnOldButton = () => {
             $btn.style.pointerEvents = "auto";
             $btn.style.removeProperty("background");
-            $btnText.innerText = "Создать аккаунт";
+            let language = localStorage.getItem('language');
+            $btnText.innerText = languages[language].btnTitle;
         }
 
         const showLoader = () => {
