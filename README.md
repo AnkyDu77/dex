@@ -5,6 +5,7 @@ Zanshin provides users with the security of DEX applications, while providing th
 - high speed of execution of trade orders;  
 - margin trading;  
 - pooling and staking.  
+
 The project is implemented on the basis of its own blockchain, a distinctive feature of which is the attribution of transactions. Each transaction sent to the network contains all the information necessary to identify the type of order. Depending on the configuration of the filled-in transaction fields, Zanshin determines whether the latter belongs to one of the transaction pools: common pool or trade pool.  
 The trade pool contains all limit trading orders. As soon as a counter order is found for a specific trade order that satisfies the conditions for exchanging the first order, the Zanshin Virtual Machine (ZVM) generates outgoing transactions based on the conditions of these two orders and sends them to the common pool.  
 The common pool contains transactions for the transfer of the native Zanshin token, as well as outgoing transactions from the trade pool.  
