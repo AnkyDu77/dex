@@ -562,6 +562,61 @@ def sTokensPoolsState():
         return jsonify({'MSG': 'Pools syncing denied. Node is not registered'}), 400
 
 
+""" ==== REMOTE WALLETS FUNCTIONS ==== """
+
+@app.route('/remote-wallet/connectionPing', methods=['GET'])
+def connPing():
+    return jsonify({"PING": True})
+
+
+# Add wallet to wallets db
+@app.route('/remote-wallet/sync', methods=['POST'])
+def rsncAccs():
+
+    account = pickle.loads(bytes.fromhex(request.json['account']))
+    blockchain.accounts.append(account)
+
+    # Add account to pools
+    if len(blockchain.pools) > 0:
+        for pool in blockchain.pools:
+            pool.accountsBalance[account.address]=0.0
+
+    print('New account is added')
+    return jsonify({'MSG': 'New account is added'}), 200
+
+
+# Get Account Balacnes
+@app.route('/remote-wallet/getBalance', methods=['POST'])
+def rgBalance():
+    respondList = []
+    address = json.loads(request.data)['address']
+    nativeTokenName = Config().NATIVE_TOKEN_NAME.upper()
+    nativeBalance = blockchain.getBalance(address)
+    nativeBalanceDict = {'token': nativeTokenName, 'balance': nativeBalance}
+    respondList.append(nativeBalanceDict)
+
+    # Get pools balances for user adddress
+    for pool in blockchain.pools:
+        poolSymbol = pool.symbol
+        userBalance = pool.accountsBalance[address]
+        balanceDict = {'token': poolSymbol, 'balance': userBalance}
+        respondList.append(balanceDict)
+
+    return jsonify({'BALACNES': respondList}), 200
+
+
+@app.route('/remote-wallet/node/getLastBlockHash', methods=['GET'])
+def rgLBlock():
+    blockHash = blockchain.hash(blockchain.chain[-1])
+    return jsonify({'block_hash': blockHash}), 200
+
+#
+# @app.route('/remote-wallet/transactions/new', methods=['POST'])
+# #
+
+
+
+
 if __name__ == '__main__':
     # _, host, port = argv
-    app.run(host= '0.0.0.0', port=5000)
+    app.run(host= '0.0.0.0', port=5001)
