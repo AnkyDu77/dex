@@ -289,6 +289,121 @@ class Blockchain(object):
 
 
 
+    def newRemoteTransaction(self, remotePublicKey, sender, timestamp, txsig=None, sendAmount=0.0,\
+    price=0.0, recipient=None, symbol='zsh', type="common", contract=None,\
+    send=None, get=None, sendVol=0.0,\
+    getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
+
+        """
+        Sends new transaction in the next block
+
+        :param sender: <str> Sender Address
+        :param recipient: <str> Recipient Address
+        :param amount: <int> Summ
+        :return: <str> Synchronisation or Account Verification Status
+        """
+
+        # if comissionAmount < self.cnfg.MIN_COMISSION:
+        #     comissionAmount = self.cnfg.MIN_COMISSION
+
+        if type == 'common':
+
+            simpleTx = {
+                'timestamp': timestamp,
+                'symbol': symbol,
+                'contract': contract,
+                'sender': sender,
+                'recipient': recipient,
+                'sendAmount': sendAmount,
+                'recieveAmount': get,
+                'price': price,
+                'comissionAmount': float(comissionAmount),
+                'tradeTxId':tradeTxHash
+            }
+
+            # if sender == Config().MINEADDR:
+            #     self.current_transactions.append(simpleTx)
+            #     syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+            #
+            #     # Sync account state
+            #     if len(self.nodes) > 0:
+            #         account = [account for account in self.accounts if account.address == recipient][0]
+            #         syncAccState = sendAccountState(account, self.nodes)
+            #         print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
+            #
+            #     return self.lastBlock['index']+1, syncAccState
+
+            # Check sigitures
+            verifStatus = verifyTxSignature(sender, remotePublicKey, str(simpleTx), txsig)
+            print(f'\n\nVerification status is {verifStatus}')
+
+            if verifStatus == True:
+                self.current_transactions.append(simpleTx)
+                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+
+
+                # Sync sender account state
+                if len(self.nodes) > 0:
+                    recipientAccount = [account for account in self.accounts if account.address == recipient][0]
+                    senderAccount = [account for account in self.accounts if account.address == sender][0]
+                    syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
+                    print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
+
+
+                return self.lastBlock['index']+1, syncStatus
+
+            else:
+                return verifStatus, verifStatus
+
+        elif type == 'trade':
+
+            tradeTx = {
+                'timestamp': timestamp,
+                'sender': sender,
+                'symbol': symbol,
+                'price': price,
+                'send': send,
+                'sendVol': sendVol,
+                'get': get,
+                'getVol': getVol,
+                'comissionAmount':float(comissionAmount)
+            }
+
+            # Check sigitures
+            verifStatus = verifyTxSignature(sender, remotePublicKey, str(tradeTx), txsig)
+            print(f'\n\nVerification status is {verifStatus}')
+
+            if verifStatus == True:
+
+                tradeTxJson = json.dumps(tradeTx, sort_keys=True).encode()
+                tradeTxHash = hashlib.sha256(tradeTxJson).hexdigest()
+                tradeTx['tradeTxId'] = tradeTxHash
+
+                if len(self.nodes) > 0:
+                    pool  = [pool for pool in self.pools if pool.symbol == send.upper() or pool.symbol == get.upper()][0]
+                    poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
+                    print(f'\n====\n{pool.symbol} pool state sync status: {poolSyncState}\n====\n\n')
+
+                self.trade_transactions.append(tradeTx)
+
+                # if len(self.nodes) > 0:
+                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+
+                return self.lastBlock['index']+1, syncStatus
+
+            else:
+                return verifStatus, verifStatus
+
+        else:
+            print('smth went terribly wrong')
+
+
+
+
+
+
+
+
     def transactTradeOrders(self):
         """
         1. Get trade txs

@@ -611,8 +611,89 @@ def rgLBlock():
     return jsonify({'block_hash': blockHash}), 200
 
 #
-# @app.route('/remote-wallet/transactions/new', methods=['POST'])
-# #
+@app.route('/remote-wallet/transactions/new', methods=['POST'])
+def rnewTx():
+    if request.method == 'POST':
+        values = json.loads(request.data)
+
+        type = values['type']
+
+        if type == 'common':
+
+            publicKey = bytes.fromhex(values['publicKey'])
+            timestamp = values['timestamp']
+            symbol = values['symbol']
+            contract = values['contract']
+            sender = values['sender']
+            recipient = values['recipient']
+            sendAmount = values['sendAmount']
+            get = values['recieveAmount']
+            price = values['price']
+            comissionAmount = values['comissionAmount']
+            tradeTxHash = values['tradeTxId']
+            signiture = values['signiture']
+
+            try:
+                # Proof expenditure amount
+                account = [account for account in blockchain.accounts if account.address == sender][0]
+
+                blockHash = blockchain.hash(blockchain.chain[-1])
+                proofExpenditure = account.proofExpenditure(sendAmount, blockHash)
+
+                if proofExpenditure == False:
+                    return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+
+            except:
+                return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+
+            index, syncStatus = blockchain.newRemoteTransaction(remotePublicKey=publicKey,type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
+                                            sender=sender, recipient=recipient,\
+                                            sendAmount=sendAmount,\
+                                            comissionAmount=comissionAmount)
+
+        elif type == 'trade':
+
+            publicKey = bytes.fromhex(values['publicKey'])
+            timestamp = values['timestamp']
+            sender = values['sender']
+            symbol = values['symbol']
+            price = values['price']
+            send = values['send']
+            sendVol = values['sendVol']
+            get = values['get']
+            getVol = values['getVol']
+            comissionAmount = values['comissionAmount']
+            signiture = values['signiture']
+
+            if send == 'zsh':
+                try:
+                    # Proof expenditure amount
+                    account = [account for account in blockchain.accounts if account.address == sender][0]
+
+                    blockHash = blockchain.hash(blockchain.chain[-1])
+                    proofExpenditure = account.proofExpenditure(sendVol, blockHash)
+
+                    if proofExpenditure == False:
+                        return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+                except:
+                    return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
+
+            # Proof pool tokens expenditure
+            else:
+                try:
+                    proofPoolExpenditure = blockchain.proofPoolExpenditure(send, sender, sendVol)
+                    if proofPoolExpenditure == False:
+                        return jsonify({'MSG': 'Spend amount exceeds account balance'}), 400
+                except:
+                    return jsonify({'MSG': 'Smth went terribly wrong while pool expenditure approve process'}), 400
+
+
+            index, syncStatus = blockchain.newRemoteTransaction(remotePublicKey=publicKey, type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
+                            price=price, send=send, sendVol=sendVol, get=get,\
+                            getVol=getVol, comissionAmount=comissionAmount)
+
+        return jsonify({'MSG': syncStatus}), 201
+
 
 
 
