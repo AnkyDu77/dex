@@ -8,16 +8,16 @@
 # from textwrap import dedent
 # from time import time
 # from datetime import datetime, timezone
-# from uuid import uuid4
+from uuid import uuid4
 # from sys import argv
 # from urllib.parse import urlparse
 # from flask import render_template, Flask, jsonify, request, send_from_directory
 # from flask_cors import CORS
 #
-# from config import Config
-# from blockchain import Blockchain
+from config import Config
+from blockchain import Blockchain
 #
-# from createWallet import createWallet
+from createWallet import createWallet
 # from authoriseUser import authoriseUser
 # from signTransaction import signTransaction
 # from getCoinbase import getCoinbase
@@ -40,6 +40,42 @@ db = SQLAlchemy()
 migrate = Migrate()
 db.init_app(app)
 migrate.init_app(app, db)
+
+# app = Flask(__name__)
+# CORS(app)
+# nodeIdentifier = str(uuid4()).replace('-','')
+# blockchain = Blockchain()
+
+
+# # Get accounts and pools
+# if len(blockchain.nodes) > 0:
+#     for node in blockchain.nodes:
+#         try:
+#             values = json.loads(requests.get('http://'+node+'/wallet/syncAllAccounts').content)
+#             accounts = pickle.loads(bytes.fromhex(values['ACCOUNTS']))
+#             if accounts == None:
+#                 blockchain.accounts = []
+#             else:
+#                 blockchain.accounts = accounts
+#                 blockchain.coinbase = accounts[0].address
+#
+#             pools = pickle.loads(bytes.fromhex(values['POOLS']))
+#             if pools == None:
+#                 blockchain.pools = []
+#             else:
+#                 blockchain.pools = pools
+#             print('Accounts and pools were added')
+#             break
+#         except:
+#             print(f'Node {node} is not respond or smt went wrong with sync process')
+
+
+# Create Coinbase account
+# coinbasePassword = str(uuid4()).replace('-','')
+# blockHash = blockchain.hash(blockchain.chain[-1])
+# blockchain.coinbase = createWallet(coinbasePassword, blockHash, blockchain)
+# print(f"\n\nCoinbase address: {blockchain.coinbase}\nCoinbase password: {coinbasePassword}\n\n")
+
 
 from app import routes, models
 # nodeIdentifier = str(uuid4()).replace('-','')

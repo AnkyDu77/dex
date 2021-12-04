@@ -1,3 +1,4 @@
+cloudpickle==1.2.2
 cmake==3.18.4.post1
 cryptography>=3.2
 cycler==0.10.0
