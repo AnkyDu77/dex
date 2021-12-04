@@ -1,0 +1,1 @@
+gunicorn dex:app

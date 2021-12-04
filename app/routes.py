@@ -13,6 +13,7 @@ from sys import argv
 from urllib.parse import urlparse
 from flask import render_template, Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
+from app import app
 
 from config import Config
 from blockchain import Blockchain
@@ -25,11 +26,14 @@ from syncPools import syncPools
 from sendAccountState import sendAccountState
 from sendNewPool import sendNewPool
 
+from bots.miner import miner
 
-app = Flask(__name__)
-CORS(app)
+
+# app = Flask(__name__)
+# CORS(app)
 nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
+
 
 # Get accounts and pools
 if len(blockchain.nodes) > 0:
@@ -54,6 +58,12 @@ if len(blockchain.nodes) > 0:
             print(f'Node {node} is not respond or smt went wrong with sync process')
 
 
+# Create Coinbase account
+coinbasePassword = str(uuid4()).replace('-','')
+blockHash = blockchain.hash(blockchain.chain[-1])
+blockchain.coinbase = createWallet(coinbasePassword, blockHash, blockchain)
+print(f"\n\nCoinbase address: {blockchain.coinbase}\nCoinbase password: {coinbasePassword}\n\n")
+
 
 @app.route('/', methods=['GET'])
 @app.route('/index.html', methods=['GET'])
@@ -68,6 +78,60 @@ def login():
 @app.route('/sign_up.html', methods=['GET'])
 def sign_up():
     return render_template('sign_up.html')
+
+
+
+
+@app.route('/soloMine', methods=['GET'])
+def sMine():
+    lastBlock = blockchain.lastBlock
+    lastProof = lastBlock['proof']
+    proof = blockchain.pow(lastProof)
+
+    blockchain.newTransaction(
+        sender=Config().MINEADDR,
+        timestamp = datetime.now(timezone.utc).timestamp(),
+        recipient=blockchain.coinbase,
+        sendAmount=1
+    )
+
+    # Match trade txs and route trades
+    blockchain.transactTradeOrders()
+
+    # Make Transactions
+    blockHash = blockchain.hash(blockchain.chain[-1])
+    for transaction in blockchain.current_transactions:
+        if transaction['symbol'] == 'zsh' or transaction['contract'] == 'zsh':
+            try:
+                account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
+                account.makeTransaction(transaction['sendAmount'], blockHash)
+                # syncAccState = sendAccountState(account, blockchain.nodes)
+            except:
+                return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
+        else:
+            try:
+                blockchain.makePoolTransaction(transaction['contract'], transaction['recipient'], transaction['sendAmount'])
+            except:
+                return jsonify({'MSG': f'Something went terribly wrong with pool transaction to recipient {transaction["recipient"]}'}), 400
+
+    previousHash = blockchain.hash(lastBlock)
+    block = blockchain.newBlock(proof, previousHash)
+
+    # syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
+    syncStatus = 'Account state synced among 0 nodes'
+    response = {
+        'message': "New Block Forged",
+        'index': block['index'],
+        'transactions': block['transactions'],
+        'proof': block['proof'],
+        'previous_hash': block['previousHash'],
+        'pool_syncing': syncStatus
+    }
+
+    return jsonify(response), 200
+
+
+
 
 
 @app.route('/mine', methods=['GET'])
@@ -693,11 +757,3 @@ def rnewTx():
                             getVol=getVol, comissionAmount=comissionAmount)
 
         return jsonify({'MSG': syncStatus}), 201
-
-
-
-
-
-if __name__ == '__main__':
-    # _, host, port = argv
-    app.run(host= '0.0.0.0', port=5001)

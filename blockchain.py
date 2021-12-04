@@ -139,9 +139,9 @@ class Blockchain(object):
         self.current_transactions = []
         self.chain.append(block)
 
-        # Sync chain among the nodes
-        if len(self.nodes) > 0:
-            syncChains(self.chain, self.nodes)
+        # # Sync chain among the nodes
+        # if len(self.nodes) > 0:
+        #     syncChains(self.chain, self.nodes)
 
         # Get chain size and write it to file if necessary
         if sys.getsizeof(self.chain) >= Config().MAX_CHAIN_SIZE:
@@ -217,12 +217,13 @@ class Blockchain(object):
 
             if sender == Config().MINEADDR:
                 self.current_transactions.append(simpleTx)
-                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
-
+                # syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+                syncStatus = 'Tx pool synced among 0 nodes'
                 # Sync account state
                 if len(self.nodes) > 0:
                     account = [account for account in self.accounts if account.address == recipient][0]
-                    syncAccState = sendAccountState(account, self.nodes)
+                    # syncAccState = sendAccountState(account, self.nodes)
+                    syncAccState = 'Account state synced among 0 nodes'
                     print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
 
                 return self.lastBlock['index']+1, syncStatus
@@ -231,14 +232,16 @@ class Blockchain(object):
             verifStatus = verifyTxSignature(sender, self.pubKey, str(simpleTx), txsig)
             if verifStatus == True:
                 self.current_transactions.append(simpleTx)
-                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+                # syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+                syncStatus = 'Tx pool synced among 0 nodes'
 
 
                 # Sync sender account state
                 if len(self.nodes) > 0:
                     recipientAccount = [account for account in self.accounts if account.address == recipient][0]
                     senderAccount = [account for account in self.accounts if account.address == sender][0]
-                    syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
+                    # syncAccState = sendAccountState(recipientAccount, self.nodes, senderAccount)
+                    syncAccState = 'Account state synced among 0 nodes'
                     print(f'\n====\nAccount state sync status: {syncAccState}\n====\n\n')
 
 
@@ -271,13 +274,15 @@ class Blockchain(object):
 
                 if len(self.nodes) > 0:
                     pool  = [pool for pool in self.pools if pool.symbol == send.upper() or pool.symbol == get.upper()][0]
-                    poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
+                    # poolSyncState = syncTokenPools(pool.poolAddress, pool.poolBalance, sender, pool.accountsBalance[sender], self.nodes)
+                    poolSyncState = 'Pools state synced among 0 nodes'
                     print(f'\n====\n{pool.symbol} pool state sync status: {poolSyncState}\n====\n\n')
 
                 self.trade_transactions.append(tradeTx)
 
                 # if len(self.nodes) > 0:
-                syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+                # syncStatus = syncPools(self.current_transactions, self.trade_transactions, self.nodes)
+                syncStatus = 'Tx pool synced among 0 nodes'
 
                 return self.lastBlock['index']+1, syncStatus
 
@@ -396,12 +401,6 @@ class Blockchain(object):
 
         else:
             print('smth went terribly wrong')
-
-
-
-
-
-
 
 
     def transactTradeOrders(self):
