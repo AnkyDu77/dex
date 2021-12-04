@@ -21,7 +21,6 @@ pathlib==1.0.1
 pathlib2==2.3.5
 python-utils==2.4.0
 pycryptodome==3.10.1
-pycryptodomex==3.10.1
 requests==2.22.0
 rpa==1.27.1
 rsa==4.0
