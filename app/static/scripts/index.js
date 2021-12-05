@@ -43,8 +43,8 @@ $(function () {
     const $intervalButtons = document.getElementById('interval-buttons');
 
     //const API_URL = 'http://192.168.0.100:5000';
-    // const API_URL = 'http://localhost:5001'; // Alina
-    const API_URL = 'http://localhost';
+    const API_URL = 'http://localhost:5001'; // Alina
+    // const API_URL = 'http://localhost';
     //const API_URL = 'http://4a9b-77-222-104-154.ngrok.io';
     const TRADE_DIRECTIONS = {SELL: 'SELL', BUY: 'BUY'};
     let tradeDirection = TRADE_DIRECTIONS.BUY;

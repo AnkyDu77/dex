@@ -5,7 +5,6 @@ import requests
 import json
 import pickle
 
-# from textwrap import dedent
 from time import time
 from datetime import datetime, timezone
 from uuid import uuid4
@@ -26,12 +25,8 @@ from syncPools import syncPools
 from sendAccountState import sendAccountState
 from sendNewPool import sendNewPool
 
-# from bots.miner import miner
 
-
-# # app = Flask(__name__)
-# # CORS(app)
-# nodeIdentifier = str(uuid4()).replace('-','')
+nodeIdentifier = str(uuid4()).replace('-','')
 blockchain = Blockchain()
 #
 #
