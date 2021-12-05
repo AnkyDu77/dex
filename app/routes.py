@@ -56,7 +56,7 @@ blockchain = Blockchain()
 # Create Coinbase account
 coinbasePassword = str(uuid4()).replace('-','')
 blockHash = blockchain.hash(blockchain.chain[-1])
-blockchain.coinbase = createWallet(coinbasePassword, blockHash, blockchain)
+blockchain.coinbase = createWallet("password", blockHash, blockchain)
 print(f"\n\nCoinbase address: {blockchain.coinbase}\nCoinbase password: {coinbasePassword}\n\n")
 
 
