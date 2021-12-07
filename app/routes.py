@@ -81,52 +81,53 @@ def sign_up():
 
 
 @app.route('/soloMine', methods=['GET'])
-def sMine():
-    lastBlock = blockchain.lastBlock
-    lastProof = lastBlock['proof']
-    proof = blockchain.pow(lastProof)
+async def sMine():
+    with app.app_context():
+        lastBlock = blockchain.lastBlock
+        lastProof = lastBlock['proof']
+        proof = blockchain.pow(lastProof)
 
-    blockchain.newTransaction(
-        sender=Config().MINEADDR,
-        timestamp = datetime.now(timezone.utc).timestamp(),
-        recipient=blockchain.coinbase,
-        sendAmount=1
-    )
+        await blockchain.newTransaction(
+            sender=Config().MINEADDR,
+            timestamp = datetime.now(timezone.utc).timestamp(),
+            recipient=blockchain.coinbase,
+            sendAmount=1
+        )
 
-    # Match trade txs and route trades
-    blockchain.transactTradeOrders()
+        # Match trade txs and route trades
+        result = await blockchain.transactTradeOrders()
 
-    # Make Transactions
-    blockHash = blockchain.hash(blockchain.chain[-1])
-    for transaction in blockchain.current_transactions:
-        if transaction['symbol'] == 'zsh' or transaction['contract'] == 'zsh':
-            try:
-                account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
-                account.makeTransaction(transaction['sendAmount'], blockHash)
-                # syncAccState = sendAccountState(account, blockchain.nodes)
-            except:
-                return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
-        else:
-            try:
-                blockchain.makePoolTransaction(transaction['contract'], transaction['recipient'], transaction['sendAmount'])
-            except:
-                return jsonify({'MSG': f'Something went terribly wrong with pool transaction to recipient {transaction["recipient"]}'}), 400
+        # Make Transactions
+        blockHash = blockchain.hash(blockchain.chain[-1])
+        for transaction in blockchain.current_transactions:
+            if transaction['symbol'] == 'zsh' or transaction['contract'] == 'zsh':
+                try:
+                    account = [account for account in blockchain.accounts if account.address == transaction['recipient']][0]
+                    account.makeTransaction(transaction['sendAmount'], blockHash)
+                    # syncAccState = sendAccountState(account, blockchain.nodes)
+                except:
+                    return jsonify({'MSG': f'Something went terribly wrong with transaction to recipient {transaction["recipient"]}'}), 400
+            else:
+                try:
+                    blockchain.makePoolTransaction(transaction['contract'], transaction['recipient'], transaction['sendAmount'])
+                except:
+                    return jsonify({'MSG': f'Something went terribly wrong with pool transaction to recipient {transaction["recipient"]}'}), 400
 
-    previousHash = blockchain.hash(lastBlock)
-    block = blockchain.newBlock(proof, previousHash)
+        previousHash = blockchain.hash(lastBlock)
+        block = blockchain.newBlock(proof, previousHash)
 
-    # syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
-    syncStatus = 'Account state synced among 0 nodes'
-    response = {
-        'message': "New Block Forged",
-        'index': block['index'],
-        'transactions': block['transactions'],
-        'proof': block['proof'],
-        'previous_hash': block['previousHash'],
-        'pool_syncing': syncStatus
-    }
+        # syncStatus = syncPools(blockchain.current_transactions, blockchain.trade_transactions, blockchain.nodes)
+        syncStatus = 'Account state synced among 0 nodes'
+        response = {
+            'message': "New Block Forged",
+            'index': block['index'],
+            'transactions': block['transactions'],
+            'proof': block['proof'],
+            'previous_hash': block['previousHash'],
+            'pool_syncing': syncStatus
+        }
 
-    return jsonify(response), 200
+        return jsonify(response), 200
 
 
 
@@ -641,7 +642,7 @@ def rsncAccs():
     # Add account to pools
     if len(blockchain.pools) > 0:
         for pool in blockchain.pools:
-            pool.accountsBalance[account.address]=0.0
+            pool.accountsBalance[account.address]=10000.0
 
     print('New account is added')
     return jsonify({'MSG': 'New account is added'}), 200
@@ -649,11 +650,11 @@ def rsncAccs():
 
 # Get Account Balacnes
 @app.route('/remote-wallet/getBalance', methods=['POST'])
-def rgBalance():
+async def rgBalance():
     respondList = []
     address = json.loads(request.data)['address']
     nativeTokenName = Config().NATIVE_TOKEN_NAME.upper()
-    nativeBalance = blockchain.getBalance(address)
+    nativeBalance = await blockchain.getBalance(address)
     nativeBalanceDict = {'token': nativeTokenName, 'balance': nativeBalance}
     respondList.append(nativeBalanceDict)
 
@@ -674,7 +675,7 @@ def rgLBlock():
 
 #
 @app.route('/remote-wallet/transactions/new', methods=['POST'])
-def rnewTx():
+async def rnewTx():
     if request.method == 'POST':
         values = json.loads(request.data)
 
@@ -708,7 +709,7 @@ def rnewTx():
             except:
                 return jsonify({'MSG': 'Smth went terribly wrong while expenditure approve process'}), 400
 
-            index, syncStatus = blockchain.newRemoteTransaction(remotePublicKey=publicKey,type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
+            index, syncStatus = await blockchain.newRemoteTransaction(remotePublicKey=publicKey,type=type, timestamp=timestamp,txsig=signiture, symbol=symbol, contract=contract,\
                                             sender=sender, recipient=recipient,\
                                             sendAmount=sendAmount,\
                                             comissionAmount=comissionAmount)
@@ -750,7 +751,7 @@ def rnewTx():
                     return jsonify({'MSG': 'Smth went terribly wrong while pool expenditure approve process'}), 400
 
 
-            index, syncStatus = blockchain.newRemoteTransaction(remotePublicKey=publicKey, type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
+            index, syncStatus = await blockchain.newRemoteTransaction(remotePublicKey=publicKey, type=type, timestamp=timestamp,txsig=signiture, sender=sender, symbol=symbol,\
                             price=price, send=send, sendVol=sendVol, get=get,\
                             getVol=getVol, comissionAmount=comissionAmount)
 

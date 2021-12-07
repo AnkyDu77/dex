@@ -5,6 +5,9 @@ import uuid
 import hashlib
 import requests
 import json
+
+import asyncio
+
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from flask import request
@@ -183,7 +186,7 @@ class Blockchain(object):
 
 
 
-    def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0,\
+    async def newTransaction(self, sender, timestamp, txsig=None, sendAmount=0.0,\
     price=0.0, recipient=None, symbol='zsh', type="common", contract=None,\
     send=None, get=None, sendVol=0.0,\
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
@@ -294,7 +297,7 @@ class Blockchain(object):
 
 
 
-    def newRemoteTransaction(self, remotePublicKey, sender, timestamp, txsig=None, sendAmount=0.0,\
+    async def newRemoteTransaction(self, remotePublicKey, sender, timestamp, txsig=None, sendAmount=0.0,\
     price=0.0, recipient=None, symbol='zsh', type="common", contract=None,\
     send=None, get=None, sendVol=0.0,\
     getVol=0.0, tradeTxHash=None, comissionAmount=Config().MIN_COMISSION):
@@ -403,7 +406,7 @@ class Blockchain(object):
             print('smth went terribly wrong')
 
 
-    def transactTradeOrders(self):
+    async def transactTradeOrders(self):
         """
         1. Get trade txs
         2. Find txs where contractSend == contractGet
@@ -449,7 +452,7 @@ class Blockchain(object):
         return pool, f'New pool was created! Name: {pool.name}, Symbol: {pool.symbol}'
 
 
-    def getPools(self):
+    async def getPools(self):
 
         requestedPools = []
         for pool in self.pools:
