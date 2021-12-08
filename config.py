@@ -12,7 +12,7 @@ class Config():
 
     NATIVE_TOKEN_NAME = 'zsh'
     MIN_COMISSION = 1
-    MAX_CHAIN_SIZE = 2831155
+    MAX_CHAIN_SIZE = 50000 #2831155
     REQUIRED_TX_FIELDS = ['sender', 'type']
     REQUIRED_TX_TYPE = ['common', 'trade']
 
@@ -21,3 +21,5 @@ class Config():
     DEFAULT_PORT = '5001'
 
     UPLOAD_FOLDER = os.path.join(BASEDIR, 'chain')
+
+    WALLET_FOLDER = os.path.join(BASEDIR, 'zanshin-wallet')

@@ -53,11 +53,12 @@ blockchain = Blockchain()
 #             print(f'Node {node} is not respond or smt went wrong with sync process')
 #
 #
-# Create Coinbase account
-coinbasePassword = str(uuid4()).replace('-','')
-blockHash = blockchain.hash(blockchain.chain[-1])
-blockchain.coinbase = createWallet("password", blockHash, blockchain)
-print(f"\n\nCoinbase address: {blockchain.coinbase}\nCoinbase password: {coinbasePassword}\n\n")
+# Create Coinbase account if there is no blockchain history
+if len(blockchain.accounts) == 0:
+    coinbasePassword = str(uuid4()).replace('-','')
+    blockHash = blockchain.hash(blockchain.chain[-1])
+    blockchain.coinbase = createWallet(coinbasePassword, blockHash, blockchain)
+    print(f"\n\nCoinbase address: {blockchain.coinbase}\nCoinbase password: {coinbasePassword}\n\n")
 
 
 # @app.route('/', methods=['GET'])
@@ -641,7 +642,8 @@ def rsncAccs():
     # Add account to pools
     if len(blockchain.pools) > 0:
         for pool in blockchain.pools:
-            pool.accountsBalance[account.address]=0.0
+            # pool.accountsBalance[account.address]=0.0
+            pool.accountsBalance[account.address]=10000.0
 
     print('New account is added')
     return jsonify({'MSG': 'New account is added'}), 200
@@ -755,3 +757,18 @@ def rnewTx():
                             getVol=getVol, comissionAmount=comissionAmount)
 
         return jsonify({'MSG': syncStatus}), 201
+
+
+@app.route("/downloadWallet", methods=['GET'])
+def download_wallet():
+    return send_from_directory(
+        app.config['WALLET_FOLDER'], 'zanshin-wallet-x64.zip', as_attachment=True
+    )
+
+@app.route('/saveBlockchainState', methods=['GET'])
+def sBlckState():
+    saveStatus = blockchain.saveBlockchainState()
+    if saveStatus == True:
+        return 'Blockchain state has been saved successfully.', 200
+    else:
+        return 'Smth in saving process went terribly wrong', 400

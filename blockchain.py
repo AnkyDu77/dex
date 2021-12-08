@@ -5,6 +5,7 @@ import uuid
 import hashlib
 import requests
 import json
+import pickle
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from flask import request
@@ -67,45 +68,78 @@ class Account(object):
 
 class Blockchain(object):
     def __init__(self):
-        self.cnfg = Config()
-        self.chain=[]
-        self.accounts=[]
-        self.pools = []
-        self.current_transactions=[]
-        self.trade_transactions=[]
-        self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
-        self.coinbase = None
-        self.prkey = None
-        self.pubKey = None
 
-        # Get chain data from default nodes
-        if len(self.nodes) > 0:
-            for node in self.nodes:
-                try:
-                    # Get num of files
-                    filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
-                    # Download files
-                    for i in range(filesNum):
-                        chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
-                        fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
-                        with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
-                            file.write(chainFile.content)
-                except:
-                    print(f'Node {node} does not respond')
+        blockchainStateFiles = [file for file in os.listdir('./blockchainState') if file.split('.')[1]=='json']
 
-                # Get pools info
+        if len(blockchainStateFiles) > 0:
+            self.chain=[]
+            self.accounts=[]
+            self.pools = []
+            self.current_transactions=[]
+            self.trade_transactions=[]
+            self.coinbase = None
 
-                # Get accounts info
+            self.loadBlockchainState()
+            self.cnfg = Config()
+            self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
+            self.prkey = None
+            self.pubKey = None
 
-        # Get latest block or initiate genesis
-        chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
-        chainFiles = [file for file in chainFiles if re.split(r'\.', file)[1] == 'json']
-        if len(chainFiles) > 0:
-            with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{chainFiles[-1]}'), 'r') as file:
-                self.chain = [json.load(file)[-1]]
+            # Get chain data from default nodes
+            if len(self.nodes) > 0:
+                for node in self.nodes:
+                    try:
+                        # Get num of files
+                        filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+                        # Download files
+                        for i in range(filesNum):
+                            chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
+                            fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+                            with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+                                file.write(chainFile.content)
+                    except:
+                        print(f'Node {node} does not respond')
+
         else:
-            # Genesis block creation
-            self.newBlock(previousHash=1, proof=100)
+            self.cnfg = Config()
+            self.chain=[]
+            self.accounts=[]
+            self.pools = []
+            self.current_transactions=[]
+            self.trade_transactions=[]
+            self.nodes = {node for node in self.cnfg.DEFAULT_VALID_NODES if len(self.cnfg.DEFAULT_VALID_NODES)>0}
+            self.coinbase = None
+            self.prkey = None
+            self.pubKey = None
+
+            # Get chain data from default nodes
+            if len(self.nodes) > 0:
+                for node in self.nodes:
+                    try:
+                        # Get num of files
+                        filesNum = json.loads(requests.get(node+'/nodes/getChainFilesAmount').content)['MSG']
+                        # Download files
+                        for i in range(filesNum):
+                            chainFile = requests.post('http://'+node+'/nodes/sendChainData', json={'iter':i})
+                            fileName = re.split(r'; filename=', chainFile.headers['Content-Disposition'])[1]
+                            with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{fileName}'), 'wb') as file:
+                                file.write(chainFile.content)
+                    except:
+                        print(f'Node {node} does not respond')
+
+                    # Get pools info
+
+                    # Get accounts info
+
+            # Get latest block or initiate genesis
+            chainFiles = os.listdir(os.path.join(self.cnfg.BASEDIR, 'chain'))
+            chainFiles = [file for file in chainFiles if re.split(r'\.', file)[1] == 'json']
+            if len(chainFiles) > 0:
+                with open(os.path.join(os.path.join(self.cnfg.BASEDIR, 'chain'), f'{chainFiles[-1]}'), 'r') as file:
+                    self.chain = [json.load(file)[-1]]
+            else:
+                # Genesis block creation
+                self.newBlock(previousHash=1, proof=100)
 
 
 
@@ -128,7 +162,7 @@ class Blockchain(object):
 
         # Make new block
         block = {
-            'index': len(self.chain)+1,
+            'index': self.chain[-1]['index']+1 or len(self.chain)+1,
             'timestamp': datetime.now(timezone.utc).timestamp(),
             'transactions': self.current_transactions,
             'proof': proof,
@@ -144,13 +178,54 @@ class Blockchain(object):
         #     syncChains(self.chain, self.nodes)
 
         # Get chain size and write it to file if necessary
-        if sys.getsizeof(self.chain) >= Config().MAX_CHAIN_SIZE:
+        #if sys.getsizeof(self.chain) >= Config().MAX_CHAIN_SIZE:
+        #    with open(f'./chain/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
+        #        json.dump(self.chain, file)
+#
+        #    self.chain = [self.chain[-1]]
+
+        if len(self.chain) >= Config().MAX_CHAIN_SIZE:
             with open(f'./chain/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
                 json.dump(self.chain, file)
+
+            self.saveBlockchainState()
 
             self.chain = [self.chain[-1]]
 
         return block
+
+
+    def saveBlockchainState(self):
+        blockchainState = {
+            'chain': self.chain,
+            'accounts': [pickle.dumps(account).hex() for account in self.accounts],
+            'pools': [pickle.dumps(pool).hex() for pool in self.pools],
+            'current_transactions': self.current_transactions,
+            'trade_transactions': self.trade_transactions,
+            'coinbase': self.coinbase
+        }
+
+        with open(f'./blockchainState/{int(datetime.now(timezone.utc).timestamp())}.json', 'w') as file:
+            json.dump(blockchainState, file)
+
+        return True
+
+
+    def loadBlockchainState(self):
+
+        files = [file for file in os.listdir('./blockchainState') if file.split('.')[1]=='json']
+        files.sort(key=lambda f: int(re.sub('\D', '', f)))
+
+        with open(f'./blockchainState/{files[-1]}', 'r') as file:
+            loadedState = json.load(file)
+
+        self.chain = [loadedState['chain'][-1]]
+        self.accounts = [pickle.loads(bytes.fromhex(account)) for account in loadedState['accounts']]
+        self.pools = [pickle.loads(bytes.fromhex(pool)) for pool in loadedState['pools']]
+        self.current_transactions = loadedState['current_transactions']
+        self.trade_transactions = loadedState['trade_transactions']
+        self.coinbase = loadedState['coinbase']
+
 
 
     # Approve non-native tokens expenditure
