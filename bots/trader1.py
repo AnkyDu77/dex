@@ -56,12 +56,12 @@ if __name__ == '__main__':
 
     while True:
         # === Set buy order ===
-        c = random.randrange(-5,10,1)/10
+        c = random.randrange(-3,4,1)/10
         price += c
         if price < 0.5:
             price = 10
 
-        n = random.randrange(-10,10,1)/10
+        n = random.randrange(-3,3,1)/10
         getVol += n
         if getVol < 0 or getVol > 1:
             getVol = 0.1
@@ -74,12 +74,12 @@ if __name__ == '__main__':
         sleep(2)
 
         # === Set sell order ===
-        c = random.randrange(-5,10,1)/10
+        c = random.randrange(-3,4,1)/10
         price += c
         if price < 0.5:
             price = 10
 
-        n = random.randrange(-10,10,1)/10
+        n = random.randrange(-3,3,1)/10
         getVol += n
         if getVol < 0 or getVol > 1:
             getVol = 1
